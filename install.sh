@@ -7,10 +7,10 @@ if [ -L $HOME/.vimrc ]; then
 fi
 ln -s "$(pwd)/.vimrc" $HOME
 
-mkdir -p $HOME/.vim/pack/vendor/start
+mkdir -p $HOME/.vim/bundle
 git clone --depth 1 \
 	https://github.com/VundleVim/Vundle.vim.git \
-	$HOME/.vim/pack/vendor/start/vundle
+	$HOME/.vim/bundle/Vundle.vim
 
 vim +PluginInstall +qall
 if [ -d $HOME/.ipython ]; then
