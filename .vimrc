@@ -18,7 +18,7 @@ Plugin 'honza/vim-snippets'
 Plugin 'scrooloose/nerdcommenter'
 Plugin 'lervag/vimtex'
 Plugin 'dracula/vim', { 'name': 'dracula' }
-Plugin 'jupyter-vim/jupyter-vim'
+Plugin 'tim-clifford/jupyter-vim'
 Plugin 'goerz/jupytext.vim'
 Plugin 'vim-airline/vim-airline'
 Plugin 'lambdalisue/battery.vim'
