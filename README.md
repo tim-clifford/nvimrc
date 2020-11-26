@@ -1,0 +1,4 @@
+- .vimrc: main config
+- .vimrc-minimal: no-plugin config
+- .vimrc-quick: only the best plugins, to start quicker
+- .vimrc-tiny: only the HJKL remaps, for adaptinG to vim-like programs

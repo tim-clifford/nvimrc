@@ -19,10 +19,13 @@ Plugin 'scrooloose/nerdcommenter'
 Plugin 'lervag/vimtex'
 Plugin 'dracula/vim', { 'name': 'dracula' }
 Plugin 'tim-clifford/jupyter-vim'
-Plugin 'goerz/jupytext.vim'
+Plugin 'tim-clifford/jupytext.vim'
 Plugin 'vim-airline/vim-airline'
 Plugin 'lambdalisue/battery.vim'
 Plugin 'puremourning/vimspector'
+Plugin 'junegunn/fzf'
+Plugin 'junegunn/fzf.vim'
+"Plugin 'pandysong/ghost-text.vim', { 'do': ':GhostInstall' }
 
 " All of your Plugins must be added before the following line
 call vundle#end()            " required
@@ -42,16 +45,26 @@ filetype plugin indent on    " required
 syntax enable
 colorscheme dracula
 hi Normal ctermbg=NONE
-set tabstop=4 softtabstop=4 shiftwidth=4 noexpandtab
-set number
 set foldmethod=marker
 set mouse=a
+let mapleader = " "
+let maplocalleader = " "
 command DiffOrig vert new | set bt=nofile | r # | 0d_ | diffthis
 		\ | wincmd p | diffthis
+set tabstop=4 softtabstop=4 shiftwidth=4 noexpandtab
+set number
+augroup numbertoggle
+	autocmd BufEnter,FocusGained * set relativenumber
+	autocmd BufLeave,FocusLost   * set norelativenumber
+augroup END
+set noshowmode
+set shortmess+=F
+"let g:terminal_ansi_colors = [ "#ff5555", "#50fa7b", "#f1fa8c", "#bd93f9", "#ff79c6", "#8be9fd", "#f8f8f2", "#6272a4", "#ff6e6e", "#69ff94", "#ffffa5", "#d6acff", "#ff92df", "#a4ffff", "#ffffff", "#21222c" ]
+
 " }}}
 " NERDTree {{{
-autocmd StdinReadPre * let s:std_in=1
-autocmd VimEnter * if argc() == 0 && !exists("s:std_in") | NERDTree | endif
+"autocmd StdinReadPre * let s:std_in=1
+"autocmd VimEnter * if argc() == 0 && !exists("s:std_in") | NERDTree | endif
 " }}}
 " TermPDF {{{
 let g:current_page = 0
@@ -62,6 +75,8 @@ function TermPDF(file) abort
 	let time = str2float(reltimestr(reltime())) * 1000.0
 	if time - g:termpdf_lastcalled > 1000
 		call system('kitty @ kitten termpdf.py ' . a:file)
+		" Remember the last opened page but don't fail when the number of
+		" pages has changed
 		let g:total_pages = str2nr(system("pdfinfo " . a:file . " | grep Pages | sed 's/[^0-9]*//'"))
 		if g:current_page == 0
 			let g:current_page = 1
@@ -125,8 +140,18 @@ endfunction
 function VimtexExit()
 	call TermPDFClose()
 	:VimtexClean
+	" Remove extra auxiliary files that I don't particularly care about
 	call system("rm *.run.xml *.bbl *.synctex.gz")
 endfunction
+augroup vimtex
+	autocmd VimLeave *.tex call VimtexExit()
+	autocmd User VimtexEventCompileSuccess call VimtexCallback()
+	autocmd InsertLeave *.tex :w
+	" <C-PgUp> and <C-PgDn>
+	autocmd FileType tex,markdown nnoremap [5;5~ :call TermPDFPrev()<CR>
+	autocmd FileType tex,markdown nnoremap [6;5~ :call TermPDFNext()<CR>
+	autocmd FileType markdown call TermPDFAutoUpdateStart()
+augroup END
 " }}}
 " Jupyter {{{
 function JupyterStart()
@@ -137,35 +162,48 @@ function JupyterExit()
 	call TermPDFClose()
 	call system('pkill -9 jupyter && kitty @ close-window --match title:vimjupyter')
 endfunction
+function JupyterCompile()
+	silent execute "w"
+	call system('pandoc '.expand('%:t:r').'.md -o jupyter_notebook.pdf -V geometry:margin=1in')
+	call TermPDF(getcwd().'/jupyter_notebook.pdf')
+endfunction
+"function JupyterRunAllIntoMarkdown()
+	""call system('pkill -9 jupyter')
+	""call JupyterStart()
+	"normal gg
+	"let flags = "c"
+	"while search("```python", flags) != 0
+		"call jupyter#SendCell()
+		"call search("```")
+		"call system("sleep 0.5")
+		"call append(line('.'),matchstr(readfile('.jupyter-out'),"OUT["))
+		"let flags = ""
+	"endwhile
+"endfunction
+"let g:jupyter_monitor_console = 1
 let g:jupyter_mapkeys = 0
 let b:jupyter_kernel_type = 'python'
-let g:jupyter_cell_markers = ['```py','```']
+let g:jupyter_cell_separators = ['```py','```']
 let g:markdown_fenced_languages = ['python']
-" }}}
-" Auto Commands {{{
-augroup General
-	autocmd VimLeave *.tex call VimtexExit()
+augroup jupyter
 	autocmd VimLeave *.ipynb call JupyterExit()
-	autocmd User VimtexEventCompileSuccess call VimtexCallback()
-	autocmd InsertLeave *.tex :w
-	autocmd FileType tex,markdown nnoremap [5;5~ :call TermPDFPrev()<Enter>
-	autocmd FileType tex,markdown nnoremap [6;5~ :call TermPDFNext()<Enter>
-	autocmd FileType markdown call TermPDFAutoUpdateStart()
+	autocmd BufEnter *.ipynb call jupyter#load#MakeStandardCommands()
+	autocmd BufEnter *.ipynb set filetype=markdown.python
 augroup END
-au VimEnter * let g:ycm_semantic_triggers.tex=g:vimtex#re#youcompleteme
-au BufEnter *.ipynb call jupyter#MakeStandardCommands()
-au BufEnter *.ipynb set filetype=markdown.python
 " }}}
 " YouCompleteMe {{{
+au VimEnter * let g:ycm_semantic_triggers.tex=g:vimtex#re#youcompleteme
 let g:ycm_filetype_blacklist={'notes': 1, 'unite': 1, 'tagbar': 1, 'pandoc': 1, 'qf': 1, 'vimwiki': 1, 'text': 1, 'infolog': 1, 'mail': 1}
 " }}}
 " Make {{{
 function MakeAndRun()
 	if filereadable('start.sh')
 		call system('./start.sh >stdout.txt 2>stderr.txt&')
-	else if expand('%:e') == python
+	elseif expand('%:e') == python
 		call system('python3 '.expand('%:t').'>stdout.txt 2>stderr.txt&')
 	else
+		" Assumes makefile exists and binary filename is current filename
+		" minus extension
 		:!make
 		call system('./'.expand('%:r').'>stdout.txt 2>stderr.txt&')
 	endif
@@ -208,17 +246,17 @@ noremap <C-W>J <C-W>N
 noremap <Leader>k za
 " }}}
 " Make {{{
-noremap <Leader>mm :wa <bar> make <Enter>
-noremap <Leader>mr :wa <bar> call MakeAndRun() <Enter>
+noremap <Leader>mm :wa <bar> make <CR>
+noremap <Leader>mr :wa <bar> call MakeAndRun() <CR>
 " }}}
 " Terminal {{{
 tnoremap <Esc> <C-\><C-n>
 tnoremap <Esc><Esc> <C-\><C-n>
 set timeout timeoutlen=1000  " Default
 set ttimeout ttimeoutlen=100  " Set by defaults.vim
-noremap <Leader>tt :call term_start($SHELL, {'curwin' : 1})<Enter>
-noremap <Leader>ts :term<Enter>
-noremap <Leader>tv :vertical term<Enter>
+noremap <Leader>tt :call term_start($SHELL, {'curwin' : 1})<CR>
+noremap <Leader>ts :term<CR>
+noremap <Leader>tv :vertical term<CR>
 " }}}
 " {{{ NERDTree
 noremap <Leader>n  :NERDTreeToggle<CR>
@@ -235,47 +273,91 @@ let g:UltiSnipsJumpForwardTrigger="<c-b>"
 let g:UltiSnipsJumpBackwardTrigger="<c-z>"
 " }}}
 " Vimtex {{{
-nnoremap <Leader>lx :call TermPDFClose()<Enter>
+nnoremap <Leader>lx :call TermPDFClose()<CR>
 " }}}
 " Jupyter {{{
 " Run current file
-nnoremap <localleader>jr :JupyterRunFile<CR>
-nnoremap <localleader>ji :PythonImportThisFile<CR>
+nnoremap <leader>jr :JupyterRunFile<CR>
+nnoremap <leader>ji :PythonImportThisFile<CR>
 
 " Change to directory of current file
-nnoremap <localleader>jd :JupyterCd %:p:h<CR>
+nnoremap <leader>jd :JupyterCd %:p:h<CR>
 
 " Send a selection of lines
-nnoremap <localleader>jx :JupyterSendCell<CR>
-nnoremap <localleader>je :JupyterSendRange<CR>
-nmap     <localleader>je <Plug>JupyterRunTextObj
-vmap     <localleader>je <Plug>JupyterRunVisual
+nnoremap <leader>jx :call jupyter#SendCell() <bar> /```py<CR>
+nnoremap <leader>je :JupyterSendRange<CR>
+nmap     <leader>je <Plug>JupyterRunTextObj
+vmap     <leader>je <Plug>JupyterRunVisual
 
-nnoremap <localleader>ju :JupyterUpdateShell<CR>
+nnoremap <leader>ju :JupyterUpdateShell<CR>
 
 " Debugging maps
-nnoremap <localleader>jb :PythonSetBreak<CR>
+nnoremap <leader>jb :PythonSetBreak<CR>
 
 " Kitty side panel
-nnoremap <localleader>jj :call JupyterStart()<Enter>
-nnoremap <localleader>jq :call JupyterExit()<Enter>
+nnoremap <leader>jj :call JupyterStart()<CR>
+nnoremap <leader>jp :call JupyterCompile()<CR>
+nnoremap <leader>jq :call JupyterExit()<CR>
 
 " goto cell
-nnoremap <localleader>jc /```py<Enter>
+nnoremap <leader>jc /```py<CR>
+nnoremap <leader>jC ?```py<CR>
 " run all
-nnoremap <localleader>ja :%g/```py/JupyterSendCell<Enter>G
+nnoremap <leader>ja :%g/```py/JupyterSendCell<CR>G
+" }}}
+" YouCompleteMe {{{
+" Avoid confilict with vimspector
+let ycm_key_detailed_diagnostics = '<leader>yd'
 " }}}
 " Vimspector {{{
-nnoremap <leader>dd <Plug>VimspectorContinue
-nnoremap <leader>ds <Plug>VimspectorStop
-nnoremap <leader>dr <Plug>VimspectorRestart
-nnoremap <leader>dp <Plug>VimspectorPause
-nnoremap <leader>dbb <Plug>VimspectorToggleBreakpoint
-nnoremap <leader>dbc <Plug>VimspectorToggleConditionalBreakpoint
-nnoremap <leader>dbf <Plug>VimspectorAddFunctionBreakpoint
-nnoremap <leader>dso <Plug>VimspectorStepOver
-nnoremap <leader>dsi <Plug>VimspectorStepInto
-nnoremap <leader>dsO <Plug>VimspectorStepOut
-nnoremap <leader>dc <Plug>VimspectorRunToCursor
-" }}} 
+nnoremap <leader>dd :call vimspector#Launch()<CR>
+nmap <leader>d<space>  <Plug>VimspectorContinue
+nmap <leader>ds <Plug>VimspectorStop
+nmap <leader>dr <Plug>VimspectorRestart
+nmap <leader>dp <Plug>VimspectorPause
+nmap <leader>dbb <Plug>VimspectorToggleBreakpoint
+nmap <leader>dbc <Plug>VimspectorToggleConditionalBreakpoint
+nmap <leader>dbf <Plug>VimspectorAddFunctionBreakpoint
+nmap <leader>de <Plug>VimspectorStepOver
+nmap <leader>do <Plug>VimspectorStepInto
+nmap <leader>di <Plug>VimspectorStepOut
+nmap <leader>dc <Plug>VimspectorRunToCursor
+nmap <leader>dq :VimspectorReset<CR>
+" }}}
+" fzf {{{
+nnoremap <leader>f :GFiles<CR>
+nnoremap <leader>F :Files<CR>
+" }}}
+" Fugitive {{{
+let g:nremap = {
+\	'o': 'k',
+\	'O': 'K',
+\	'e': 'l',
+\	'E': 'L',
+\	'i': 'h',
+\	'I': 'H',
+\	'n': 'j',
+\	'N': 'J',
+\}
+let g:oremap = {
+\	'o': 'k',
+\	'O': 'K',
+\	'e': 'l',
+\	'E': 'L',
+\	'i': 'h',
+\	'I': 'H',
+\	'n': 'j',
+\	'N': 'J',
+\}
+let g:xremap = {
+\	'o': 'k',
+\	'O': 'K',
+\	'e': 'l',
+\	'E': 'L',
+\	'i': 'h',
+\	'I': 'H',
+\	'n': 'j',
+\	'N': 'J',
+\}
+" }}}
 " }}}
