@@ -1,0 +1,252 @@
+--- .vimrc	2021-01-12 23:14:09.308775001 +0000
++++ .vimrc-minimal	2021-01-12 23:50:20.026201037 +0000
+@@ -1,50 +1,6 @@
+ set nocompatible              " be iMproved, required
+ set encoding=utf-8
+ filetype off                  " required
+-" set the runtime path to include Vundle and initialize
+-set rtp+=~/.vim/bundle/Vundle.vim
+-call vundle#begin()
+-" alternatively, pass a path where Vundle should install plugins
+-"call vundle#begin('~/some/path/here')
+-
+-" let Vundle manage Vundle, required
+-Plugin 'VundleVim/Vundle.vim'
+-
+-Plugin 'tpope/vim-fugitive'
+-Plugin 'scrooloose/nerdtree'
+-Plugin 'valloric/youcompleteme'
+-Plugin 'sirver/ultisnips'
+-Plugin 'honza/vim-snippets'
+-Plugin 'scrooloose/nerdcommenter'
+-Plugin 'lervag/vimtex'
+-Plugin 'dracula/vim', { 'name': 'dracula' }
+-Plugin 'tim-clifford/jupyter-vim'
+-Plugin 'tim-clifford/jupytext.vim'
+-Plugin 'vim-airline/vim-airline'
+-Plugin 'lambdalisue/battery.vim'
+-Plugin 'puremourning/vimspector'
+-Plugin 'junegunn/fzf'
+-Plugin 'junegunn/fzf.vim'
+-Plugin 'dag/vim-fish'
+-"Plugin 'pandysong/ghost-text.vim', { 'do': ':GhostInstall' }
+-Plugin 'ap/vim-css-color'
+-Plugin 'skywind3000/asyncrun.vim'
+-Plugin 'powerman/vim-plugin-AnsiEsc'
+-
+-" All of your Plugins must be added before the following line
+-call vundle#end()            " required
+-filetype plugin indent on    " required
+-" To ignore plugin indent changes, instead use:
+-"filetype plugin on
+-"
+-" Brief help
+-" :PluginList       - lists configured plugins
+-" :PluginInstall    - installs plugins; append `!` to update or just :PluginUpdate
+-" :PluginSearch foo - searches for foo; append `!` to refresh local cache
+-" :PluginClean      - confirms removal of unused plugins; append `!` to auto-approve removal
+-"
+-" see :h vundle for more details or wiki for FAQ
+-" Put your non-Plugin stuff after this line
+ " General {{{
+ syntax enable
+ set termguicolors
+@@ -91,10 +47,6 @@
+ map <leader>pi ggdG"+p:Indent<CR>
+ map <leader>ya gg"+yG
+ " }}}
+-" NERDTree {{{
+-"autocmd StdinReadPre * let s:std_in=1
+-"autocmd VimEnter * if argc() == 0 && !exists("s:std_in") | NERDTree | endif
+-" }}}
+ " TermPDF {{{
+ let g:current_page = 0
+ let g:total_pages = 0
+@@ -160,70 +112,6 @@
+ 	endif
+ endfunction
+ " }}}
+-" Vimtex {{{
+-let g:tex_flavor = 'latex'
+-let g:vimtex_view_automatic = 0
+-function VimtexCallback()
+-	call TermPDF(escape(b:vimtex.out()," "))
+-endfunction
+-function VimtexExit()
+-	call TermPDFClose()
+-	:VimtexClean
+-	" Remove extra auxiliary files that I don't particularly care about
+-	call system("rm *.run.xml *.bbl *.synctex.gz")
+-endfunction
+-augroup vimtex
+-	autocmd VimLeave *.tex call VimtexExit()
+-	autocmd User VimtexEventCompileSuccess call VimtexCallback()
+-	autocmd InsertLeave *.tex :w
+-	" <C-PgUp> and <C-PgDn>
+-	autocmd FileType tex,markdown nnoremap [5;5~ :call TermPDFPrev()<CR>
+-	autocmd FileType tex,markdown nnoremap [6;5~ :call TermPDFNext()<CR>
+-	autocmd FileType markdown call TermPDFAutoUpdateStart()
+-augroup END
+-" }}}
+-" Jupyter {{{
+-function JupyterStart()
+-	call system('kitty @ kitten jupyter.py '.getcwd())
+-	:JupyterConnect
+-endfunction
+-function JupyterExit()
+-	call TermPDFClose()
+-	call system('pkill -9 jupyter && kitty @ close-window --match title:vimjupyter')
+-endfunction
+-function JupyterCompile()
+-	silent execute "w"
+-	call system('pandoc '.expand('%:t:r').'.md -o jupyter_notebook.pdf -V geometry:margin=1in')
+-	call TermPDF(getcwd().'/jupyter_notebook.pdf')
+-endfunction
+-"function JupyterRunAllIntoMarkdown()
+-	""call system('pkill -9 jupyter')
+-	""call JupyterStart()
+-	"normal gg
+-	"let flags = "c"
+-	"while search("```python", flags) != 0
+-		"call jupyter#SendCell()
+-		"call search("```")
+-		"call system("sleep 0.5")
+-		"call append(line('.'),matchstr(readfile('.jupyter-out'),"OUT["))
+-		"let flags = ""
+-	"endwhile
+-"endfunction
+-"let g:jupyter_monitor_console = 1
+-let g:jupyter_mapkeys = 0
+-let b:jupyter_kernel_type = 'python'
+-let g:jupyter_cell_separators = ['```py','```']
+-let g:markdown_fenced_languages = ['python']
+-augroup jupyter
+-	autocmd VimLeave *.ipynb call JupyterExit()
+-	autocmd BufEnter *.ipynb call jupyter#load#MakeStandardCommands()
+-	autocmd BufEnter *.ipynb set filetype=markdown.python
+-augroup END
+-" }}}
+-" YouCompleteMe {{{
+-au VimEnter * let g:ycm_semantic_triggers.tex=g:vimtex#re#youcompleteme
+-let g:ycm_filetype_blacklist={'cpp': 1, 'notes': 1, 'unite': 1, 'tagbar': 1, 'pandoc': 1, 'qf': 1, 'vimwiki': 1, 'text': 1, 'infolog': 1, 'mail': 1}
+-" }}}
+ " Make {{{
+ let g:asyncrun_open=10
+ autocmd! BufWritePost $MYVIMRC nested source %
+@@ -259,9 +147,6 @@
+ 	endif
+ endfunction
+ " }}}
+-" Airline {{{
+-let g:airline#extensions#whitespace#mixed_indent_algo = 2
+-" }}}
+ " Keyboard Mappings {{{
+ " General {{{
+ noremap n h
+@@ -318,106 +203,4 @@
+ noremap <Leader>ts :term<CR>
+ noremap <Leader>tv :vertical term<CR>
+ " }}}
+-" {{{ NERDTree
+-noremap <Leader>n  :NERDTreeToggle<CR>
+-let g:NERDTreeMapActivateNode='k'
+-let g:NERDTreeMapOpenSplit='s'
+-let g:NERDTreeMapOpenVSplit='v'
+-let g:NERDTreeMapToggleHidden='H'
+-let g:NERDTreeMapOpenRecursively='0'
+-let g:NERDTreeMapOpenExpl='l'
+-" }}}
+-" Ultisnips {{{
+-let g:UltiSnipsExpandTrigger="<c-e>"
+-let g:UltiSnipsJumpForwardTrigger="<c-b>"
+-let g:UltiSnipsJumpBackwardTrigger="<c-z>"
+-" }}}
+-" Vimtex {{{
+-nnoremap <Leader>lx :call TermPDFClose()<CR>
+-" }}}
+-" Jupyter {{{
+-" Run current file
+-nnoremap <leader>jr :JupyterRunFile<CR>
+-nnoremap <leader>ji :PythonImportThisFile<CR>
+-
+-" Change to directory of current file
+-nnoremap <leader>jd :JupyterCd %:p:h<CR>
+-
+-" Send a selection of lines
+-nnoremap <leader>jx :call jupyter#SendCell() <bar> /```py<CR>
+-nnoremap <leader>je :JupyterSendRange<CR>
+-nmap     <leader>je <Plug>JupyterRunTextObj
+-vmap     <leader>je <Plug>JupyterRunVisual
+-
+-nnoremap <leader>ju :JupyterUpdateShell<CR>
+-
+-" Debugging maps
+-nnoremap <leader>jb :PythonSetBreak<CR>
+-
+-" Kitty side panel
+-nnoremap <leader>jj :call JupyterStart()<CR>
+-nnoremap <leader>jp :call JupyterCompile()<CR>
+-nnoremap <leader>jq :call JupyterExit()<CR>
+-
+-" goto cell
+-nnoremap <leader>jc /```py<CR>
+-nnoremap <leader>jC ?```py<CR>
+-" run all
+-nnoremap <leader>ja :%g/```py/JupyterSendCell<CR>G
+-" }}}
+-" YouCompleteMe {{{
+-" Avoid confilict with vimspector
+-let ycm_key_detailed_diagnostics = '<leader>yd'
+-" }}}
+-" Vimspector {{{
+-nnoremap <leader>dd :call vimspector#Launch()<CR>
+-nmap <leader>d<space>  <Plug>VimspectorContinue
+-nmap <leader>ds <Plug>VimspectorStop
+-nmap <leader>dr <Plug>VimspectorRestart
+-nmap <leader>dp <Plug>VimspectorPause
+-nmap <leader>dbb <Plug>VimspectorToggleBreakpoint
+-nmap <leader>dbc <Plug>VimspectorToggleConditionalBreakpoint
+-nmap <leader>dbf <Plug>VimspectorAddFunctionBreakpoint
+-nmap <leader>de <Plug>VimspectorStepOver
+-nmap <leader>do <Plug>VimspectorStepInto
+-nmap <leader>di <Plug>VimspectorStepOut
+-nmap <leader>dc <Plug>VimspectorRunToCursor
+-nmap <leader>dq :VimspectorReset<CR>
+-" }}}
+-" fzf {{{
+-nnoremap <leader>f :GFiles<CR>
+-nnoremap <leader>F :Files<CR>
+-" }}}
+-" Fugitive {{{
+-let g:nremap = {
+-\	'o': 'k',
+-\	'O': 'K',
+-\	'e': 'l',
+-\	'E': 'L',
+-\	'i': 'h',
+-\	'I': 'H',
+-\	'n': 'j',
+-\	'N': 'J',
+-\}
+-let g:oremap = {
+-\	'o': 'k',
+-\	'O': 'K',
+-\	'e': 'l',
+-\	'E': 'L',
+-\	'i': 'h',
+-\	'I': 'H',
+-\	'n': 'j',
+-\	'N': 'J',
+-\}
+-let g:xremap = {
+-\	'o': 'k',
+-\	'O': 'K',
+-\	'e': 'l',
+-\	'E': 'L',
+-\	'i': 'h',
+-\	'I': 'H',
+-\	'n': 'j',
+-\	'N': 'J',
+-\}
+-" }}}
+ " }}}

@@ -1,0 +1,121 @@
+--- .vimrc	2021-01-12 23:14:09.308775001 +0000
++++ .vimrc-nvim	2021-01-12 23:46:52.800671509 +0000
+@@ -1,12 +1,10 @@
+ set nocompatible              " be iMproved, required
+-set encoding=utf-8
+ filetype off                  " required
+ " set the runtime path to include Vundle and initialize
+-set rtp+=~/.vim/bundle/Vundle.vim
+-call vundle#begin()
++set rtp+=~/.config/nvim/bundle/Vundle.vim
++"call vundle#begin()
+ " alternatively, pass a path where Vundle should install plugins
+-"call vundle#begin('~/some/path/here')
+-
++call vundle#begin('~/.config/nvim/bundle')
+ " let Vundle manage Vundle, required
+ Plugin 'VundleVim/Vundle.vim'
+ 
+@@ -16,20 +14,16 @@
+ Plugin 'sirver/ultisnips'
+ Plugin 'honza/vim-snippets'
+ Plugin 'scrooloose/nerdcommenter'
+-Plugin 'lervag/vimtex'
+ Plugin 'dracula/vim', { 'name': 'dracula' }
+-Plugin 'tim-clifford/jupyter-vim'
+-Plugin 'tim-clifford/jupytext.vim'
+ Plugin 'vim-airline/vim-airline'
+-Plugin 'lambdalisue/battery.vim'
+-Plugin 'puremourning/vimspector'
+ Plugin 'junegunn/fzf'
+ Plugin 'junegunn/fzf.vim'
+ Plugin 'dag/vim-fish'
+-"Plugin 'pandysong/ghost-text.vim', { 'do': ':GhostInstall' }
++Plugin 'raghur/vim-ghost', { 'do': ':GhostInstall' }
+ Plugin 'ap/vim-css-color'
+ Plugin 'skywind3000/asyncrun.vim'
+ Plugin 'powerman/vim-plugin-AnsiEsc'
++Plugin 'glacambre/firenvim'
+ 
+ " All of your Plugins must be added before the following line
+ call vundle#end()            " required
+@@ -55,8 +49,6 @@
+ set mouse=a
+ let mapleader = " "
+ let maplocalleader = " "
+-command DiffOrig vert new | set bt=nofile | r # | 0d_ | diffthis
+-		\ | wincmd p | diffthis
+ set tabstop=4 softtabstop=4 shiftwidth=4 noexpandtab
+ set number
+ augroup numbertoggle
+@@ -160,70 +152,6 @@
+ 	endif
+ endfunction
+ " }}}
+-" Vimtex {{{
+-let g:tex_flavor = 'latex'
+-let g:vimtex_view_automatic = 0
+-function VimtexCallback()
+-	call TermPDF(escape(b:vimtex.out()," "))
+-endfunction
+-function VimtexExit()
+-	call TermPDFClose()
+-	:VimtexClean
+-	" Remove extra auxiliary files that I don't particularly care about
+-	call system("rm *.run.xml *.bbl *.synctex.gz")
+-endfunction
+-augroup vimtex
+-	autocmd VimLeave *.tex call VimtexExit()
+-	autocmd User VimtexEventCompileSuccess call VimtexCallback()
+-	autocmd InsertLeave *.tex :w
+-	" <C-PgUp> and <C-PgDn>
+-	autocmd FileType tex,markdown nnoremap [5;5~ :call TermPDFPrev()<CR>
+-	autocmd FileType tex,markdown nnoremap [6;5~ :call TermPDFNext()<CR>
+-	autocmd FileType markdown call TermPDFAutoUpdateStart()
+-augroup END
+-" }}}
+-" Jupyter {{{
+-function JupyterStart()
+-	call system('kitty @ kitten jupyter.py '.getcwd())
+-	:JupyterConnect
+-endfunction
+-function JupyterExit()
+-	call TermPDFClose()
+-	call system('pkill -9 jupyter && kitty @ close-window --match title:vimjupyter')
+-endfunction
+-function JupyterCompile()
+-	silent execute "w"
+-	call system('pandoc '.expand('%:t:r').'.md -o jupyter_notebook.pdf -V geometry:margin=1in')
+-	call TermPDF(getcwd().'/jupyter_notebook.pdf')
+-endfunction
+-"function JupyterRunAllIntoMarkdown()
+-	""call system('pkill -9 jupyter')
+-	""call JupyterStart()
+-	"normal gg
+-	"let flags = "c"
+-	"while search("```python", flags) != 0
+-		"call jupyter#SendCell()
+-		"call search("```")
+-		"call system("sleep 0.5")
+-		"call append(line('.'),matchstr(readfile('.jupyter-out'),"OUT["))
+-		"let flags = ""
+-	"endwhile
+-"endfunction
+-"let g:jupyter_monitor_console = 1
+-let g:jupyter_mapkeys = 0
+-let b:jupyter_kernel_type = 'python'
+-let g:jupyter_cell_separators = ['```py','```']
+-let g:markdown_fenced_languages = ['python']
+-augroup jupyter
+-	autocmd VimLeave *.ipynb call JupyterExit()
+-	autocmd BufEnter *.ipynb call jupyter#load#MakeStandardCommands()
+-	autocmd BufEnter *.ipynb set filetype=markdown.python
+-augroup END
+-" }}}
+-" YouCompleteMe {{{
+-au VimEnter * let g:ycm_semantic_triggers.tex=g:vimtex#re#youcompleteme
+-let g:ycm_filetype_blacklist={'cpp': 1, 'notes': 1, 'unite': 1, 'tagbar': 1, 'pandoc': 1, 'qf': 1, 'vimwiki': 1, 'text': 1, 'infolog': 1, 'mail': 1}
+-" }}}
+ " Make {{{
+ let g:asyncrun_open=10
+ autocmd! BufWritePost $MYVIMRC nested source %

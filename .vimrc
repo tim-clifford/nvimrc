@@ -1,4 +1,5 @@
 set nocompatible              " be iMproved, required
+set encoding=utf-8
 filetype off                  " required
 " set the runtime path to include Vundle and initialize
 set rtp+=~/.vim/bundle/Vundle.vim
@@ -9,7 +10,6 @@ call vundle#begin()
 " let Vundle manage Vundle, required
 Plugin 'VundleVim/Vundle.vim'
 
-Plugin 'octol/vim-cpp-enhanced-highlight'
 Plugin 'tpope/vim-fugitive'
 Plugin 'scrooloose/nerdtree'
 Plugin 'valloric/youcompleteme'
@@ -25,7 +25,11 @@ Plugin 'lambdalisue/battery.vim'
 Plugin 'puremourning/vimspector'
 Plugin 'junegunn/fzf'
 Plugin 'junegunn/fzf.vim'
+Plugin 'dag/vim-fish'
 "Plugin 'pandysong/ghost-text.vim', { 'do': ':GhostInstall' }
+Plugin 'ap/vim-css-color'
+Plugin 'skywind3000/asyncrun.vim'
+Plugin 'powerman/vim-plugin-AnsiEsc'
 
 " All of your Plugins must be added before the following line
 call vundle#end()            " required
@@ -43,8 +47,10 @@ filetype plugin indent on    " required
 " Put your non-Plugin stuff after this line
 " General {{{
 syntax enable
+set termguicolors
 colorscheme dracula
 hi Normal ctermbg=NONE
+hi Normal guibg=NONE
 set foldmethod=marker
 set mouse=a
 let mapleader = " "
@@ -59,8 +65,31 @@ augroup numbertoggle
 augroup END
 set noshowmode
 set shortmess+=F
-"let g:terminal_ansi_colors = [ "#ff5555", "#50fa7b", "#f1fa8c", "#bd93f9", "#ff79c6", "#8be9fd", "#f8f8f2", "#6272a4", "#ff6e6e", "#69ff94", "#ffffa5", "#d6acff", "#ff92df", "#a4ffff", "#ffffff", "#21222c" ]
+set is hls
+set nohlsearch
 
+" }}}
+" Indent {{{
+function IndentFile()
+	let winview = winsaveview()
+	silent :w
+	call system('indent -nbad -bap -nbc -bbo -hnl -br -brs -c33 -cd33 -ncdb -ce -ci4 -cli0 -d0 -di1 -nfc1 -i4 -ip0 -l80 -lp -npcs -nprs -npsl -sai -saf -saw -ncs -nsc -sob -nfca -cp33 -nss -ts4 -il1 '.expand('%:t'))
+	:e
+	" Make templates work properly
+	if &filetype == 'cpp'
+		" Fuck this there are too many edge cases
+		silent! :%s/\v ?\< ?([^\<\>]*[^\<\> ]) ?\> ?/<\1> /g
+		silent! :%s/\v(\<[^\<\>]*[^\<\> ]*\>) ([\(\)\[\]\{\};])/\1\2/g
+	endif
+	silent :w
+	call winrestview(winview)
+endfunction
+command Indent call IndentFile()
+" }}}
+" Clipboard {{{
+map <leader>pa ggdG"+p
+map <leader>pi ggdG"+p:Indent<CR>
+map <leader>ya gg"+yG
 " }}}
 " NERDTree {{{
 "autocmd StdinReadPre * let s:std_in=1
@@ -193,57 +222,88 @@ augroup END
 " }}}
 " YouCompleteMe {{{
 au VimEnter * let g:ycm_semantic_triggers.tex=g:vimtex#re#youcompleteme
-let g:ycm_filetype_blacklist={'notes': 1, 'unite': 1, 'tagbar': 1, 'pandoc': 1, 'qf': 1, 'vimwiki': 1, 'text': 1, 'infolog': 1, 'mail': 1}
+let g:ycm_filetype_blacklist={'cpp': 1, 'notes': 1, 'unite': 1, 'tagbar': 1, 'pandoc': 1, 'qf': 1, 'vimwiki': 1, 'text': 1, 'infolog': 1, 'mail': 1}
 " }}}
 " Make {{{
+let g:asyncrun_open=10
+autocmd! BufWritePost $MYVIMRC nested source %
 function MakeAndRun()
 	if filereadable('start.sh')
-		call system('./start.sh >stdout.txt 2>stderr.txt&')
-	elseif expand('%:e') == python
-		call system('python3 '.expand('%:t').'>stdout.txt 2>stderr.txt&')
+		"call system('./start.sh >stdout.txt 2>stderr.txt&')
+		:AsyncStop
+		while g:asyncrun_status == 'running'
+			sleep 1
+		endwhile
+		:AsyncRun ./start.sh
+	elseif &filetype == 'python'
+		execute ':AsyncRun python3 '.expand('%:t')
+		"call system('python3 '.expand('%:t').'>stdout.txt 2>stderr.txt&')
+	elseif &filetype == 'sh'
+		execute ':AsyncRun ./'.expand('%:t')
+		"call system('python3 '.expand('%:t').'>stdout.txt 2>stderr.txt&')
+	elseif &filetype == 'markdown'
+		"call system('pandoc '.expand('%:t:r').'.md -o '.expand('%:t:r').'.pdf -V geometry:margin=1in --pdf-engine=xelatex')
+		execute ':AsyncRun pandoc '.expand('%:t:r').'.md -o '.expand('%:t:r').'.pdf -V geometry:margin=1in --pdf-engine=xelatex')
+		while g:asyncrun_status == 'running'
+			sleep 1
+		endwhile
+		call TermPDF(getcwd().'/'.expand('%:t:r').'.pdf')
 	else
 		" Assumes makefile exists and binary filename is current filename
 		" minus extension
-		:!make
+		:AsyncRun make
+		while g:asyncrun_status == 'running'
+			sleep 1
+		endwhile
 		call system('./'.expand('%:r').'>stdout.txt 2>stderr.txt&')
 	endif
 endfunction
 " }}}
+" Airline {{{
+let g:airline#extensions#whitespace#mixed_indent_algo = 2
+" }}}
 " Keyboard Mappings {{{
 " General {{{
 noremap n h
-noremap <C-W>n <C-W>h
 noremap N H
-noremap <C-W>N <C-W>H
 noremap e j
-noremap <C-W>e <C-W>j
 noremap E J
-noremap <C-W>E <C-W>J
 noremap i k
-noremap <C-W>i <C-W>k
 noremap I K
-noremap <C-W>I <C-W>K
 noremap o l
-noremap <C-W>o <C-W>l
 noremap O L
-noremap <C-W>O <C-W>L
 noremap k o
-noremap <C-W>k <C-W>o
 noremap K O
-noremap <C-W>K <C-W>O
 noremap l e
-noremap <C-W>l <C-W>e
 noremap L E
-noremap <C-W>L <C-W>E
 noremap h i
-noremap <C-W>h <C-W>i
 noremap H I
-noremap <C-W>H <C-W>I
 noremap j n
-noremap <C-W>j <C-W>n
 noremap J N
-noremap <C-W>J <C-W>N
 noremap <Leader>k za
+map <leader>i :Indent<CR>
+"map <esc> <esc>:nohlsearch<CR>
+" }}}
+" Splits {{{
+noremap <leader>s  <C-W>
+noremap <leader>ss <C-W>s<C-W>j
+noremap <leader>sv <C-W>v<C-W>l
+noremap <leader>sn <C-W>h
+noremap <leader>sN <C-W>H
+noremap <leader>se <C-W>j
+noremap <leader>sE <C-W>J
+noremap <leader>si <C-W>k
+noremap <leader>sI <C-W>K
+noremap <leader>so <C-W>l
+noremap <leader>sO <C-W>L
+noremap <leader>sk <C-W>o
+noremap <leader>sK <C-W>O
+noremap <leader>sl <C-W>e
+noremap <leader>sL <C-W>E
+noremap <leader>sh <C-W>i
+noremap <leader>sH <C-W>I
+noremap <leader>sj <C-W>n
+noremap <leader>sJ <C-W>N
 " }}}
 " Make {{{
 noremap <Leader>mm :wa <bar> make <CR>
