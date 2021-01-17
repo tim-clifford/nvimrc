@@ -1,6 +1,6 @@
---- .vimrc-nvim	2021-01-13 00:02:55.142057379 +0000
-+++ .vimrc-nvim-pager	2021-01-13 00:05:29.024546290 +0000
-@@ -8,22 +8,15 @@
+--- .vimrc-nvim	2021-01-17 15:10:32.700612168 +0000
++++ .vimrc-nvim-pager	2021-01-17 15:13:07.633430447 +0000
+@@ -10,22 +10,15 @@
  " let Vundle manage Vundle, required
  Plugin 'VundleVim/Vundle.vim'
  
@@ -23,7 +23,7 @@
  
  " All of your Plugins must be added before the following line
  call vundle#end()            " required
-@@ -83,75 +76,6 @@
+@@ -184,17 +177,6 @@
  map <leader>pi ggdG"+p:Indent<CR>
  map <leader>ya gg"+yG
  " }}}
@@ -31,75 +31,17 @@
 -"autocmd StdinReadPre * let s:std_in=1
 -"autocmd VimEnter * if argc() == 0 && !exists("s:std_in") | NERDTree | endif
 -" }}}
--" TermPDF {{{
--let g:current_page = 0
--let g:total_pages = 0
--let g:termpdf_lastcalled = 0
--function TermPDF(file) abort
--	" Implement some basic throttling
--	let time = str2float(reltimestr(reltime())) * 1000.0
--	if time - g:termpdf_lastcalled > 1000
--		call system('kitty @ kitten termpdf.py ' . a:file)
--		" Remember the last opened page but don't fail when the number of
--		" pages has changed
--		let g:total_pages = str2nr(system("pdfinfo " . a:file . " | grep Pages | sed 's/[^0-9]*//'"))
--		if g:current_page == 0
--			let g:current_page = 1
--		elseif g:current_page <= g:total_pages
--			call system('sleep 0.2 && tpdfc goto ' . g:current_page)
--		else
--			let g:current_page = 1
--		endif
--		let g:termpdf_lastcalled = time
--	endif
--endfunction
--
--function TermPDFNext() abort
--	if g:current_page < g:total_pages
--		call system('tpdfc forward 1')
--		let g:current_page += 1
--	endif
--endfunction
--
--function TermPDFPrev() abort
--	if g:current_page > 1
--		call system('tpdfc back 1')
--		let g:current_page -= 1
--	endif
--endfunction
--
--function TermPDFEnd() abort
--	call system('tpdfc last')
--endfunction
--
--function TermPDFClose() abort
--	call system('kitty @ close-window --match title:termpdf')
--endfunction
--function TermPDFAutoUpdateIfChanged(timer)
--	if filereadable(getcwd().'/.jupyter-pdf-changed')
--		call TermPDF(getcwd().'/jupyter_plots.pdf')
--		call system('rm '.getcwd().'/.jupyter-pdf-changed')
--		if g:current_page < g:total_pages
--			call TermPDFEnd()
--		endif
--	endif
--endfunction
--let g:timerid = -1
--function TermPDFAutoUpdateStart()
--	if g:timerid == -1
--		let g:timerid = timer_start(1000, 'TermPDFAutoUpdateIfChanged', {'repeat': -1})
--	endif
--endfunction
--function TermPDFAutoUpdateStop()
--	if g:timerid != -1
--		timer_stop(g:timerid)
--	endif
--endfunction
+-" YouCompleteMe {{{
+-au VimEnter * let g:ycm_semantic_triggers.tex=g:vimtex#re#youcompleteme
+-let g:ycm_filetype_blacklist={
+-	\ 'cpp': 1, 'notes': 1, 'unite': 1, 'tagbar': 1, 'pandoc': 1, 'qf': 1,
+-	\ 'vimwiki': 1, 'text': 1, 'infolog': 1, 'mail': 1
+-	\ }
 -" }}}
  " Make {{{
  let g:asyncrun_open=10
  autocmd! BufWritePost $MYVIMRC nested source %
-@@ -246,106 +170,8 @@
+@@ -302,106 +284,8 @@
  noremap <Leader>ts :term<CR>
  noremap <Leader>tv :vertical term<CR>
  " }}}

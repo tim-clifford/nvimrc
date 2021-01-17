@@ -1,6 +1,7 @@
---- .vimrc	2021-01-12 23:14:09.308775001 +0000
-+++ .vimrc-nvim	2021-01-12 23:46:52.800671509 +0000
-@@ -1,12 +1,10 @@
+--- .vimrc	2021-01-17 15:00:16.105825790 +0000
++++ .vimrc-nvim	2021-01-17 15:10:32.700612168 +0000
+@@ -1,12 +1,11 @@
+ " Plugins {{{
  set nocompatible              " be iMproved, required
 -set encoding=utf-8
  filetype off                  " required
@@ -11,12 +12,11 @@
 +"call vundle#begin()
  " alternatively, pass a path where Vundle should install plugins
 -"call vundle#begin('~/some/path/here')
--
 +call vundle#begin('~/.config/nvim/bundle')
+ 
  " let Vundle manage Vundle, required
  Plugin 'VundleVim/Vundle.vim'
- 
-@@ -16,20 +14,16 @@
+@@ -17,20 +16,16 @@
  Plugin 'sirver/ultisnips'
  Plugin 'honza/vim-snippets'
  Plugin 'scrooloose/nerdcommenter'
@@ -39,19 +39,87 @@
  
  " All of your Plugins must be added before the following line
  call vundle#end()            " required
-@@ -55,8 +49,6 @@
- set mouse=a
- let mapleader = " "
- let maplocalleader = " "
+@@ -68,9 +63,6 @@
+ set undodir=~/.vim/undodir
+ set undofile
+ set shortmess+=F
+-
 -command DiffOrig vert new | set bt=nofile | r # | 0d_ | diffthis
 -		\ | wincmd p | diffthis
- set tabstop=4 softtabstop=4 shiftwidth=4 noexpandtab
- set number
- augroup numbertoggle
-@@ -160,70 +152,6 @@
- 	endif
- endfunction
  " }}}
+ " Visual Selection {{{
+ " public domain code by stack overflow user FocusedWolf
+@@ -196,135 +188,6 @@
+ "autocmd StdinReadPre * let s:std_in=1
+ "autocmd VimEnter * if argc() == 0 && !exists("s:std_in") | NERDTree | endif
+ " }}}
+-" TermPDF {{{
+-let g:current_page = 0
+-let g:total_pages = 0
+-let g:termpdf_lastcalled = 0
+-function TermPDF(file) abort
+-	" Implement some basic throttling
+-	let time = str2float(reltimestr(reltime())) * 1000.0
+-	if time - g:termpdf_lastcalled > 1000
+-		call system('kitty @ kitten termpdf.py ' . a:file)
+-		" Remember the last opened page but don't fail when the number of
+-		" pages has changed
+-		let g:total_pages = str2nr(system("pdfinfo "
+-					\ . a:file . " | grep Pages | sed 's/[^0-9]*//'"))
+-		if g:current_page == 0
+-			let g:current_page = 1
+-		elseif g:current_page <= g:total_pages
+-			call system('sleep 0.2 && tpdfc goto ' . g:current_page)
+-		else
+-			let g:current_page = 1
+-		endif
+-		let g:termpdf_lastcalled = time
+-	endif
+-endfunction
+-
+-function TermPDFNext() abort
+-	if g:current_page < g:total_pages
+-		call system('tpdfc forward 1')
+-		let g:current_page += 1
+-	endif
+-endfunction
+-
+-function TermPDFPrev() abort
+-	if g:current_page > 1
+-		call system('tpdfc back 1')
+-		let g:current_page -= 1
+-	endif
+-endfunction
+-
+-function TermPDFEnd() abort
+-	call system('tpdfc last')
+-endfunction
+-
+-function TermPDFClose() abort
+-	call system('kitty @ close-window --match title:termpdf')
+-endfunction
+-function TermPDFAutoUpdateIfChanged(timer)
+-	if filereadable(getcwd().'/.jupyter-pdf-changed')
+-		call TermPDF(getcwd().'/jupyter_plots.pdf')
+-		call system('rm '.getcwd().'/.jupyter-pdf-changed')
+-		if g:current_page < g:total_pages
+-			call TermPDFEnd()
+-		endif
+-	endif
+-endfunction
+-let g:timerid = -1
+-function TermPDFAutoUpdateStart()
+-	if g:timerid == -1
+-		let g:timerid = timer_start(1000,
+-					\ 'TermPDFAutoUpdateIfChanged', {'repeat': -1})
+-	endif
+-endfunction
+-function TermPDFAutoUpdateStop()
+-	if g:timerid != -1
+-		timer_stop(g:timerid)
+-	endif
+-endfunction
+-" }}}
 -" Vimtex {{{
 -let g:tex_flavor = 'latex'
 -let g:vimtex_view_automatic = 0
@@ -81,11 +149,13 @@
 -endfunction
 -function JupyterExit()
 -	call TermPDFClose()
--	call system('pkill -9 jupyter && kitty @ close-window --match title:vimjupyter')
+-	call system("pkill -9 jupyter
+-				\ && kitty @ close-window --match title:vimjupyter")
 -endfunction
 -function JupyterCompile()
 -	silent execute "w"
--	call system('pandoc '.expand('%:t:r').'.md -o jupyter_notebook.pdf -V geometry:margin=1in')
+-	call system('pandoc '.expand('%:t:r').'.md '
+-	          \ '-o jupyter_notebook.pdf -V geometry:margin=1in')
 -	call TermPDF(getcwd().'/jupyter_notebook.pdf')
 -endfunction
 -"function JupyterRunAllIntoMarkdown()
@@ -112,10 +182,6 @@
 -	autocmd BufEnter *.ipynb set filetype=markdown.python
 -augroup END
 -" }}}
--" YouCompleteMe {{{
--au VimEnter * let g:ycm_semantic_triggers.tex=g:vimtex#re#youcompleteme
--let g:ycm_filetype_blacklist={'cpp': 1, 'notes': 1, 'unite': 1, 'tagbar': 1, 'pandoc': 1, 'qf': 1, 'vimwiki': 1, 'text': 1, 'infolog': 1, 'mail': 1}
--" }}}
- " Make {{{
- let g:asyncrun_open=10
- autocmd! BufWritePost $MYVIMRC nested source %
+ " YouCompleteMe {{{
+ au VimEnter * let g:ycm_semantic_triggers.tex=g:vimtex#re#youcompleteme
+ let g:ycm_filetype_blacklist={

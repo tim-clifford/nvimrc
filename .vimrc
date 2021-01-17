@@ -1,3 +1,4 @@
+" Plugins {{{
 set nocompatible              " be iMproved, required
 set encoding=utf-8
 filetype off                  " required
@@ -34,46 +35,138 @@ Plugin 'powerman/vim-plugin-AnsiEsc'
 " All of your Plugins must be added before the following line
 call vundle#end()            " required
 filetype plugin indent on    " required
-" To ignore plugin indent changes, instead use:
-"filetype plugin on
-"
-" Brief help
-" :PluginList       - lists configured plugins
-" :PluginInstall    - installs plugins; append `!` to update or just :PluginUpdate
-" :PluginSearch foo - searches for foo; append `!` to refresh local cache
-" :PluginClean      - confirms removal of unused plugins; append `!` to auto-approve removal
-"
-" see :h vundle for more details or wiki for FAQ
-" Put your non-Plugin stuff after this line
+" }}}
 " General {{{
+"set mouse=a
+
+" Colors
 syntax enable
 set termguicolors
 colorscheme dracula
 hi Normal ctermbg=NONE
 hi Normal guibg=NONE
+
+" Formatting
+set tabstop=4 softtabstop=4 shiftwidth=4 noexpandtab
+set textwidth=0
+autocmd BufWritePre * exec TrimWhitespace()
+
+" Visual
+set incsearch nohlsearch
 set foldmethod=marker
-set mouse=a
-let mapleader = " "
-let maplocalleader = " "
+set noshowmode
+set nowrap
+set number
+autocmd Filetype markdown set wrap
+autocmd BufEnter,FocusGained * set relativenumber
+autocmd BufLeave,FocusLost   * set norelativenumber
+set scrolloff=8
+set signcolumn=yes
+set colorcolumn=80
+
+" Misc
+set undodir=~/.vim/undodir
+set undofile
+set shortmess+=F
+
 command DiffOrig vert new | set bt=nofile | r # | 0d_ | diffthis
 		\ | wincmd p | diffthis
-set tabstop=4 softtabstop=4 shiftwidth=4 noexpandtab
-set number
-augroup numbertoggle
-	autocmd BufEnter,FocusGained * set relativenumber
-	autocmd BufLeave,FocusLost   * set norelativenumber
-augroup END
-set noshowmode
-set shortmess+=F
-set is hls
-set nohlsearch
+" }}}
+" Visual Selection {{{
+" public domain code by stack overflow user FocusedWolf
+" https://stackoverflow.com/a/6271254
+function! s:get_visual_selection()
+	" Why is this not a built-in Vim script function?!
+	let [line_start, column_start] = getpos("'<")[1:2]
+	let [line_end, column_end] = getpos("'>")[1:2]
+	let lines = getline(line_start, line_end)
+	if len(lines) == 0
+		return ''
+	endif
+	let lines[-1] = lines[-1][:column_end - (&selection == 'inclusive' ? 1 : 2)]
+	let lines[0] = lines[0][column_start - 1:]
+	return join(lines, "\n")
+endfunction
+" }}}
+" Maths {{{
+function! DoMathsToRegister(reg)
+	let res = system("qalc -t '".s:get_visual_selection()."'|tr -d '\n'")
+	call setreg(a:reg, res)
+endfunction
+" }}}
+" Format {{{
+" Alignment {{{
+function! AlignWhitespaceFile(delim, aligner, splitchars)
+	let file = getline(0, line("$"))
+	let aligned = s:AlignWhitespaceString(
+				\ file, a:delim, a:aligner, a:splitchars)
+	" This seems easier to do than a substitute or delete/put
+	for i in range(len(aligned))
+		call setline(i+1, aligned[i])
+	endfor
+endfunction
+
+function! AlignWhitespaceVisual(delim, aligner, splitchars)
+	let [line_start, column_start] = getpos("'<")[1:2]
+	let [line_end, column_end] = getpos("'>")[1:2]
+	let selection = split(s:get_visual_selection(), "\n")
+	let aligned = s:AlignWhitespaceString(selection, a:delim,
+				                        \ a:aligner, a:splitchars)
+	" This seems easier to do than a substitute or delete/put
+	for i in range(len(aligned))
+		call setline(line_start + i, aligned[i])
+	endfor
+endfunction
+
+function! s:AlignWhitespaceString(lines, delim, aligner, splitchars)
+	" Only align if there if there are tabs after non-whitespace
+	" or if "
+	" Don't expect this to also remove trailing whitespace
+	" Sorry Matthew, i want to be faster than this
+	"while count(mapnew(aligned,
+				""\ "match(v:val,'[^\t ]\s*\t\s*[^\t ]') != -1"),1) > 1
+	let aligned = a:lines
+	while 1
+		" Find longest line and get matches for later
+		let longest = -1
+		let matches = []
+		for line in aligned
+			"let m = match(line, '[^\t ]\zs\s*['.a:splitchars.']\s*[^\t ]')
+			let m = match(line, '[^\t ]\zs\s*['.a:splitchars.']\s*[^\t ]')
+			"we'll need these later
+			let matches = matches + [m]
+			if m > longest
+				let longest = m
+			endif
+		endfor
+		" Breat when there are no matches
+		if longest == -1
+			break
+		endif
+		" Apply alignment
+		for i in range(len(aligned))
+			let line = aligned[i]
+			let matchstart = matches[i]
+			let matchend = match(line,
+					\ '[^\t ]\s*['.a:splitchars.']\s*\zs[^\t ]', matchstart)
+			let newline = line[:matchstart-1]
+					\ . repeat(a:aligner,longest - matchstart)
+					\ . a:delim . line[matchend:]
+			let aligned[i] = newline
+		endfor
+	endwhile
+	return aligned
+endfunction
 
 " }}}
 " Indent {{{
 function IndentFile()
 	let winview = winsaveview()
 	silent :w
-	call system('indent -nbad -bap -nbc -bbo -hnl -br -brs -c33 -cd33 -ncdb -ce -ci4 -cli0 -d0 -di1 -nfc1 -i4 -ip0 -l80 -lp -npcs -nprs -npsl -sai -saf -saw -ncs -nsc -sob -nfca -cp33 -nss -ts4 -il1 '.expand('%:t'))
+	call system("indent -nbad -bap -nbc -bbo -hnl -br -brs -c33 -cd33 -ncdb
+	          \ -ce -ci4 -cli0 -d0 -di1 -nfc1 -i4 -ip0 -l80 -lp -npcs -nprs
+	          \ -npsl -sai -saf -saw -ncs -nsc -sob -nfca -cp33 -nss -ts4 -il1 "
+	          \ . expand('%:t'))
 	:e
 	" Make templates work properly
 	if &filetype == 'cpp'
@@ -85,6 +178,14 @@ function IndentFile()
 	call winrestview(winview)
 endfunction
 command Indent call IndentFile()
+" }}}
+" Trim {{{
+function! TrimWhitespace()
+	let l:save = winsaveview()
+	keeppatterns %s/\s\+$//eg
+	call winrestview(l:save)
+endfunction
+" }}}
 " }}}
 " Clipboard {{{
 map <leader>pa ggdG"+p
@@ -106,7 +207,8 @@ function TermPDF(file) abort
 		call system('kitty @ kitten termpdf.py ' . a:file)
 		" Remember the last opened page but don't fail when the number of
 		" pages has changed
-		let g:total_pages = str2nr(system("pdfinfo " . a:file . " | grep Pages | sed 's/[^0-9]*//'"))
+		let g:total_pages = str2nr(system("pdfinfo "
+					\ . a:file . " | grep Pages | sed 's/[^0-9]*//'"))
 		if g:current_page == 0
 			let g:current_page = 1
 		elseif g:current_page <= g:total_pages
@@ -151,7 +253,8 @@ endfunction
 let g:timerid = -1
 function TermPDFAutoUpdateStart()
 	if g:timerid == -1
-		let g:timerid = timer_start(1000, 'TermPDFAutoUpdateIfChanged', {'repeat': -1})
+		let g:timerid = timer_start(1000,
+					\ 'TermPDFAutoUpdateIfChanged', {'repeat': -1})
 	endif
 endfunction
 function TermPDFAutoUpdateStop()
@@ -189,11 +292,13 @@ function JupyterStart()
 endfunction
 function JupyterExit()
 	call TermPDFClose()
-	call system('pkill -9 jupyter && kitty @ close-window --match title:vimjupyter')
+	call system("pkill -9 jupyter
+				\ && kitty @ close-window --match title:vimjupyter")
 endfunction
 function JupyterCompile()
 	silent execute "w"
-	call system('pandoc '.expand('%:t:r').'.md -o jupyter_notebook.pdf -V geometry:margin=1in')
+	call system('pandoc '.expand('%:t:r').'.md '
+	          \ '-o jupyter_notebook.pdf -V geometry:margin=1in')
 	call TermPDF(getcwd().'/jupyter_notebook.pdf')
 endfunction
 "function JupyterRunAllIntoMarkdown()
@@ -222,28 +327,35 @@ augroup END
 " }}}
 " YouCompleteMe {{{
 au VimEnter * let g:ycm_semantic_triggers.tex=g:vimtex#re#youcompleteme
-let g:ycm_filetype_blacklist={'cpp': 1, 'notes': 1, 'unite': 1, 'tagbar': 1, 'pandoc': 1, 'qf': 1, 'vimwiki': 1, 'text': 1, 'infolog': 1, 'mail': 1}
+let g:ycm_filetype_blacklist={
+	\ 'cpp': 1, 'notes': 1, 'unite': 1, 'tagbar': 1, 'pandoc': 1, 'qf': 1,
+	\ 'vimwiki': 1, 'text': 1, 'infolog': 1, 'mail': 1
+	\ }
 " }}}
 " Make {{{
 let g:asyncrun_open=10
 autocmd! BufWritePost $MYVIMRC nested source %
 function MakeAndRun()
 	if filereadable('start.sh')
-		"call system('./start.sh >stdout.txt 2>stderr.txt&')
 		:AsyncStop
 		while g:asyncrun_status == 'running'
 			sleep 1
 		endwhile
 		:AsyncRun ./start.sh
 	elseif &filetype == 'python'
+		:AsyncStop
 		execute ':AsyncRun python3 '.expand('%:t')
-		"call system('python3 '.expand('%:t').'>stdout.txt 2>stderr.txt&')
 	elseif &filetype == 'sh'
+		:AsyncStop
 		execute ':AsyncRun ./'.expand('%:t')
-		"call system('python3 '.expand('%:t').'>stdout.txt 2>stderr.txt&')
 	elseif &filetype == 'markdown'
-		"call system('pandoc '.expand('%:t:r').'.md -o '.expand('%:t:r').'.pdf -V geometry:margin=1in --pdf-engine=xelatex')
-		execute ':AsyncRun pandoc '.expand('%:t:r').'.md -o '.expand('%:t:r').'.pdf -V geometry:margin=1in --pdf-engine=xelatex')
+		:AsyncStop
+		execute ':AsyncRun pandoc '
+			\ . ' --defaults ~/.config/pandoc/pandoc.yaml '
+			\ . expand('%:t:r').'.md -o ' .expand('%:t:r').'.pdf '
+			\ . '-V geometry:margin=1in '
+			\ . '-H ~/.config/pandoc/draculaheader.tex '
+			\ . '--pdf-engine=xelatex'
 		while g:asyncrun_status == 'running'
 			sleep 1
 		endwhile
@@ -264,6 +376,9 @@ let g:airline#extensions#whitespace#mixed_indent_algo = 2
 " }}}
 " Keyboard Mappings {{{
 " General {{{
+let mapleader = " "
+let maplocalleader = " "
+
 noremap n h
 noremap N H
 noremap e j
@@ -280,9 +395,15 @@ noremap h i
 noremap H I
 noremap j n
 noremap J N
-noremap <Leader>k za
-map <leader>i :Indent<CR>
-"map <esc> <esc>:nohlsearch<CR>
+noremap <leader>k za
+" }}}
+" Maths {{{
+noremap <leader>x :call DoMathsToRegister(v:register)<CR>
+" }}}
+" Format {{{
+nnoremap <leader>o :call   AlignWhitespaceFile('    ',' ','[:tab:]')<CR>
+vnoremap <leader>o :call AlignWhitespaceVisual('    ',' ','[:tab:]')<CR>
+noremap <leader>i :Indent<CR>
 " }}}
 " Splits {{{
 noremap <leader>s  <C-W>
