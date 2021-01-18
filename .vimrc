@@ -58,7 +58,13 @@ set noshowmode
 set nowrap
 set number
 autocmd Filetype markdown set wrap
-autocmd BufEnter,FocusGained * set relativenumber
+
+function SetRelativenumber()
+	if &filetype != "help"
+		set relativenumber
+	endif
+endfunction
+autocmd! BufEnter,FocusGained * call SetRelativenumber()
 autocmd BufLeave,FocusLost   * set norelativenumber
 set scrolloff=8
 set signcolumn=yes
@@ -96,54 +102,54 @@ endfunction
 " }}}
 " Format {{{
 " Alignment {{{
-function! AlignWhitespaceFile(delim, aligner, splitchars)
+function! AlignWhitespaceFile(delim, aligner, splitregex)
 	let file = getline(0, line("$"))
-	let aligned = s:AlignWhitespaceString(
-				\ file, a:delim, a:aligner, a:splitchars)
+	let aligned = s:AlignWhitespaceLines(
+				\ file, a:delim, a:aligner, a:splitregex)
 	" This seems easier to do than a substitute or delete/put
 	for i in range(len(aligned))
 		call setline(i+1, aligned[i])
 	endfor
 endfunction
 
-function! AlignWhitespaceVisual(delim, aligner, splitchars)
+function! AlignWhitespaceVisual(delim, aligner, splitregex)
 	let [line_start, column_start] = getpos("'<")[1:2]
 	let [line_end, column_end] = getpos("'>")[1:2]
 	let selection = split(s:get_visual_selection(), "\n")
-	let aligned = s:AlignWhitespaceString(selection, a:delim,
-				                        \ a:aligner, a:splitchars)
+	let aligned = s:AlignWhitespaceLines(selection, a:delim,
+				                        \ a:aligner, a:splitregex)
 	" This seems easier to do than a substitute or delete/put
 	for i in range(len(aligned))
 		call setline(line_start + i, aligned[i])
 	endfor
 endfunction
 
-function! s:AlignWhitespaceString(lines, delim, aligner, splitchars)
+function! s:AlignWhitespaceLines(lines, delim, aligner, splitregex)
 	" Only align if there if there are tabs after non-whitespace
 	" Don't expect this to also remove trailing whitespace
+	" Fix | in regex
+	let splitregex = substitute(a:splitregex, '|', '\\|', 'g')
 	let aligned = a:lines
-	while 1
+	let last = []
+	while last != aligned
+		let last = aligned
 		" Find longest line and get matches for later
 		let longest = -1
 		let matches = []
 		for line in aligned
-			let m = match(line, '[^\t ]\zs\s*['.a:splitchars.']\s*[^\t ]')
+			let m = match(line, '[^\t ]\zs\s*\%('.splitregex.'\)\s*[^\t ]')
 			"we'll need these later
 			let matches = matches + [m]
 			if m > longest
 				let longest = m
 			endif
 		endfor
-		" Breat when there are no matches
-		if longest == -1
-			break
-		endif
 		" Apply alignment
 		for i in range(len(aligned))
 			let line = aligned[i]
 			let matchstart = matches[i]
 			let matchend = match(line,
-					\ '[^\t ]\s*['.a:splitchars.']\s*\zs[^\t ]', matchstart-1)
+					\ '[^\t ]\s*\%('.splitregex.'\)\s*\zs[^\t ]', matchstart-1)
 			" Do nothing if there are no matches on the line
 			if matchstart != -1 && matchend > matchstart
 				let newline = line[:matchstart-1]
@@ -183,6 +189,35 @@ function! TrimWhitespace()
 	keeppatterns %s/\s\+$//eg
 	call winrestview(l:save)
 endfunction
+" }}}
+" Wrap {{{
+function! CombineEmailLines()
+	" Go past first empty line
+	normal gg
+	call search('\n\n', 'e')
+	normal! j
+	" Don't join the last paragraph
+	while match(join(getline(line('.')+1,'$'), "\n"), '\n\n') != -1
+		while match(getline(line('.')+1), '^$') == -1
+			normal! J
+		endwhile
+		normal! jj
+	endwhile
+endfunction
+
+function! FormatEmail()
+	set textwidth=80
+	normal gg
+	call search('\n\n', 'e')
+	normal! j
+	" don't format the last paragraph
+	while match(join(getline(line('.')+1,'$'), "\n"), '\n\n') != -1
+		normal! gqj
+	endwhile
+endfunction
+
+autocmd! BufWritePre *.eml call CombineEmailLines()
+autocmd! BufReadPost *.eml call FormatEmail()
 " }}}
 " }}}
 " Clipboard {{{
@@ -399,8 +434,9 @@ noremap <leader>k za
 noremap <leader>x :call DoMathsToRegister(v:register)<CR>
 " }}}
 " Format {{{
-nnoremap <leader>o :call   AlignWhitespaceFile('    ',' ','[:tab:]')<CR>
-vnoremap <leader>o :call AlignWhitespaceVisual('    ',' ','[:tab:]')<CR>
+nnoremap <leader>o :call   AlignWhitespaceFile('    ',' ','\t')<CR>
+" Let the strategy be more aggressive for visual selection
+vnoremap <leader>o :call AlignWhitespaceVisual('    ',' ','  \|\t')<CR>
 noremap <leader>i :Indent<CR>
 " }}}
 " Splits {{{

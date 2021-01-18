@@ -1,5 +1,5 @@
---- .vimrc	2021-01-17 15:00:16.105825790 +0000
-+++ .vimrc-nvim	2021-01-17 15:10:32.700612168 +0000
+--- .vimrc	2021-01-18 03:41:25.301973758 +0000
++++ .vimrc-nvim	2021-01-18 03:43:53.561606279 +0000
 @@ -1,12 +1,11 @@
  " Plugins {{{
  set nocompatible              " be iMproved, required
@@ -39,7 +39,7 @@
  
  " All of your Plugins must be added before the following line
  call vundle#end()            " required
-@@ -68,9 +63,6 @@
+@@ -74,9 +69,6 @@
  set undodir=~/.vim/undodir
  set undofile
  set shortmess+=F
@@ -49,7 +49,7 @@
  " }}}
  " Visual Selection {{{
  " public domain code by stack overflow user FocusedWolf
-@@ -196,135 +188,6 @@
+@@ -229,135 +221,6 @@
  "autocmd StdinReadPre * let s:std_in=1
  "autocmd VimEnter * if argc() == 0 && !exists("s:std_in") | NERDTree | endif
  " }}}

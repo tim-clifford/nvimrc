@@ -1,5 +1,5 @@
---- .vimrc-nvim	2021-01-17 15:10:32.700612168 +0000
-+++ .vimrc-nvim-pager	2021-01-17 15:13:07.633430447 +0000
+--- .vimrc-nvim	2021-01-18 03:43:53.561606279 +0000
++++ .vimrc-nvim-pager	2021-01-18 03:43:53.578272905 +0000
 @@ -10,22 +10,15 @@
  " let Vundle manage Vundle, required
  Plugin 'VundleVim/Vundle.vim'
@@ -23,7 +23,7 @@
  
  " All of your Plugins must be added before the following line
  call vundle#end()            " required
-@@ -184,17 +177,6 @@
+@@ -217,17 +210,6 @@
  map <leader>pi ggdG"+p:Indent<CR>
  map <leader>ya gg"+yG
  " }}}
@@ -41,7 +41,7 @@
  " Make {{{
  let g:asyncrun_open=10
  autocmd! BufWritePost $MYVIMRC nested source %
-@@ -302,106 +284,8 @@
+@@ -336,106 +318,8 @@
  noremap <Leader>ts :term<CR>
  noremap <Leader>tv :vertical term<CR>
  " }}}
