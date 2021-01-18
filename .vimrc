@@ -120,18 +120,13 @@ endfunction
 
 function! s:AlignWhitespaceString(lines, delim, aligner, splitchars)
 	" Only align if there if there are tabs after non-whitespace
-	" or if "
 	" Don't expect this to also remove trailing whitespace
-	" Sorry Matthew, i want to be faster than this
-	"while count(mapnew(aligned,
-				""\ "match(v:val,'[^\t ]\s*\t\s*[^\t ]') != -1"),1) > 1
 	let aligned = a:lines
 	while 1
 		" Find longest line and get matches for later
 		let longest = -1
 		let matches = []
 		for line in aligned
-			"let m = match(line, '[^\t ]\zs\s*['.a:splitchars.']\s*[^\t ]')
 			let m = match(line, '[^\t ]\zs\s*['.a:splitchars.']\s*[^\t ]')
 			"we'll need these later
 			let matches = matches + [m]
@@ -148,11 +143,14 @@ function! s:AlignWhitespaceString(lines, delim, aligner, splitchars)
 			let line = aligned[i]
 			let matchstart = matches[i]
 			let matchend = match(line,
-					\ '[^\t ]\s*['.a:splitchars.']\s*\zs[^\t ]', matchstart)
-			let newline = line[:matchstart-1]
-					\ . repeat(a:aligner,longest - matchstart)
-					\ . a:delim . line[matchend:]
-			let aligned[i] = newline
+					\ '[^\t ]\s*['.a:splitchars.']\s*\zs[^\t ]', matchstart-1)
+			" Do nothing if there are no matches on the line
+			if matchstart != -1 && matchend > matchstart
+				let newline = line[:matchstart-1]
+						\ . repeat(a:aligner,longest - matchstart)
+						\ . a:delim . line[matchend:]
+				let aligned[i] = newline
+			endif
 		endfor
 	endwhile
 	return aligned

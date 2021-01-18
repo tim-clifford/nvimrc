@@ -2,6 +2,9 @@
 mkdir -p $HOME/.config/nvim
 # Make nvim config from patch
 patch -b .vimrc nvim.patch
+if [ -f .vimrc-nvim ]; then
+	mv .vimrc-nvim .vimrc-nvim.orig
+fi
 mv .vimrc .vimrc-nvim
 mv .vimrc.orig .vimrc
 # Link nvim config

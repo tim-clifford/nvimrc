@@ -1,5 +1,5 @@
---- .vimrc	2021-01-17 15:00:16.105825790 +0000
-+++ .vimrc-minimal	2021-01-17 15:06:05.391469991 +0000
+--- .vimrc	2021-01-18 00:29:36.124437958 +0000
++++ .vimrc-minimal	2021-01-18 00:29:36.174437838 +0000
 @@ -1,41 +1,3 @@
 -" Plugins {{{
 -set nocompatible              " be iMproved, required
@@ -42,7 +42,7 @@
  " General {{{
  "set mouse=a
  
-@@ -192,146 +154,6 @@
+@@ -190,146 +152,6 @@
  map <leader>pi ggdG"+p:Indent<CR>
  map <leader>ya gg"+yG
  " }}}
@@ -189,7 +189,7 @@
  " Make {{{
  let g:asyncrun_open=10
  autocmd! BufWritePost $MYVIMRC nested source %
-@@ -371,9 +193,6 @@
+@@ -369,9 +191,6 @@
  	endif
  endfunction
  " }}}
@@ -199,7 +199,7 @@
  " Keyboard Mappings {{{
  " General {{{
  let mapleader = " "
-@@ -439,106 +258,4 @@
+@@ -437,106 +256,4 @@
  noremap <Leader>ts :term<CR>
  noremap <Leader>tv :vertical term<CR>
  " }}}
