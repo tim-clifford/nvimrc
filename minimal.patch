@@ -1,5 +1,5 @@
---- .vimrc	2021-01-18 03:41:25.301973758 +0000
-+++ .vimrc-minimal	2021-01-18 03:42:56.788413779 +0000
+--- .vimrc	2021-01-19 01:15:33.532652202 +0000
++++ .vimrc-minimal	2021-01-19 01:15:42.252641266 +0000
 @@ -1,41 +1,3 @@
 -" Plugins {{{
 -set nocompatible              " be iMproved, required
@@ -40,9 +40,9 @@
 -filetype plugin indent on    " required
 -" }}}
  " General {{{
- "set mouse=a
  
-@@ -225,146 +187,6 @@
+ " This set is for smallbrains only
+@@ -237,146 +199,6 @@
  map <leader>pi ggdG"+p:Indent<CR>
  map <leader>ya gg"+yG
  " }}}
@@ -189,7 +189,7 @@
  " Make {{{
  let g:asyncrun_open=10
  autocmd! BufWritePost $MYVIMRC nested source %
-@@ -404,9 +226,6 @@
+@@ -416,9 +238,6 @@
  	endif
  endfunction
  " }}}
@@ -199,7 +199,7 @@
  " Keyboard Mappings {{{
  " General {{{
  let mapleader = " "
-@@ -473,106 +292,4 @@
+@@ -485,106 +304,4 @@
  noremap <Leader>ts :term<CR>
  noremap <Leader>tv :vertical term<CR>
  " }}}

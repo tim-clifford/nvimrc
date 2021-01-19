@@ -37,19 +37,24 @@ call vundle#end()            " required
 filetype plugin indent on    " required
 " }}}
 " General {{{
+
+" This set is for smallbrains only
 "set mouse=a
 
 " Colors
-syntax enable
-set termguicolors
-colorscheme dracula
-hi Normal ctermbg=NONE
-hi Normal guibg=NONE
+syntax         enable
+colorscheme    dracula
+highlight      Normal ctermbg=NONE
+highlight      Normal guibg=NONE
+set            termguicolors
 
 " Formatting
 set tabstop=4 softtabstop=4 shiftwidth=4 noexpandtab
 set textwidth=0
-autocmd BufWritePre * exec TrimWhitespace()
+augroup formatting
+	autocmd!
+	autocmd BufWritePre * call TrimWhitespace()
+augroup END
 
 " Visual
 set incsearch nohlsearch
@@ -57,14 +62,16 @@ set foldmethod=marker
 set noshowmode
 set nowrap
 set number
-autocmd Filetype markdown set wrap
+autocmd FileType markdown set wrap
 
 function SetRelativenumber()
+	" Help files don't get numbering so without this check we'll get an
+	" annoying shift in the text when going in and out of a help buffer
 	if &filetype != "help"
 		set relativenumber
 	endif
 endfunction
-autocmd! BufEnter,FocusGained * call SetRelativenumber()
+autocmd BufEnter,FocusGained * call SetRelativenumber()
 autocmd BufLeave,FocusLost   * set norelativenumber
 set scrolloff=8
 set signcolumn=yes
@@ -117,7 +124,7 @@ function! AlignWhitespaceVisual(delim, aligner, splitregex)
 	let [line_end, column_end] = getpos("'>")[1:2]
 	let selection = split(s:get_visual_selection(), "\n")
 	let aligned = s:AlignWhitespaceLines(selection, a:delim,
-				                        \ a:aligner, a:splitregex)
+	                                   \ a:aligner, a:splitregex)
 	" This seems easier to do than a substitute or delete/put
 	for i in range(len(aligned))
 		call setline(line_start + i, aligned[i])
@@ -138,7 +145,7 @@ function! s:AlignWhitespaceLines(lines, delim, aligner, splitregex)
 		let matches = []
 		for line in aligned
 			let m = match(line, '[^\t ]\zs\s*\%('.splitregex.'\)\s*[^\t ]')
-			"we'll need these later
+			" we'll need these later
 			let matches = matches + [m]
 			if m > longest
 				let longest = m
@@ -169,7 +176,7 @@ function IndentFile()
 	silent :w
 	call system("indent -nbad -bap -nbc -bbo -hnl -br -brs -c33 -cd33 -ncdb
 	          \ -ce -ci4 -cli0 -d0 -di1 -nfc1 -i4 -ip0 -l80 -lp -npcs -nprs
-	          \ -npsl -sai -saf -saw -ncs -nsc -sob -nfca -cp33 -nss -ts4 -il1 "
+	          \ -npsl -sai -saf -saw -ncs -nsc -sob -nfca -cp33 -nss -ts4 -il1
 	          \ . expand('%:t'))
 	:e
 	" Make templates work properly
@@ -184,28 +191,27 @@ endfunction
 command Indent call IndentFile()
 " }}}
 " Trim {{{
-function! TrimWhitespace()
+function TrimWhitespace()
+	let l:line = line('.')
 	let l:save = winsaveview()
 	keeppatterns %s/\s\+$//eg
 	call winrestview(l:save)
+	echo l:line
+	execute ':'.l:line
 endfunction
 " }}}
-" Wrap {{{
+" Email {{{
 function! CombineEmailLines()
-	" Go past first empty line
+	" Yeah, I am big brain
+	set textwidth=80
+	silent g/\v^%(Cc|Bcc|Reply-To):\s*$/d
+	silent g/\v^(%(\> )*)$\n\zs^\1.+$\ze\n^\1$/norm! gqj
 	normal gg
-	call search('\n\n', 'e')
-	normal! j
-	" Don't join the last paragraph
-	while match(join(getline(line('.')+1,'$'), "\n"), '\n\n') != -1
-		while match(getline(line('.')+1), '^$') == -1
-			normal! J
-		endwhile
-		normal! jj
-	endwhile
 endfunction
 
 function! FormatEmail()
+	"g/\v^(%(\> *)*)\s*$\n%(^\1.+$\n)*\zs%(^\1.+$\n)+^\1\s*$/norm! gq
+
 	set textwidth=80
 	normal gg
 	call search('\n\n', 'e')
@@ -216,8 +222,14 @@ function! FormatEmail()
 	endwhile
 endfunction
 
-autocmd! BufWritePre *.eml call CombineEmailLines()
-autocmd! BufReadPost *.eml call FormatEmail()
+augroup EmailFormatting
+	autocmd! BufWritePre *.eml            call CombineEmailLines()
+	autocmd! BufReadPost *.eml            call FormatEmail()
+	autocmd! BufWritePre /tmp/mutt*       call CombineEmailLines()
+	autocmd! BufReadPost /tmp/mutt*       call FormatEmail()
+	autocmd! BufWritePre /tmp/neomutt*    call CombineEmailLines()
+	autocmd! BufReadPost /tmp/neomutt*    call FormatEmail()
+augroup END
 " }}}
 " }}}
 " Clipboard {{{
