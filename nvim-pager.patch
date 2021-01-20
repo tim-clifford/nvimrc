@@ -1,5 +1,5 @@
---- .vimrc-nvim	2021-01-19 01:15:42.272641241 +0000
-+++ .vimrc-nvim-pager	2021-01-19 01:15:42.285974558 +0000
+--- .vimrc-nvim	2021-01-20 04:45:59.456874550 +0000
++++ .vimrc-nvim-pager	2021-01-20 04:45:59.470207810 +0000
 @@ -10,22 +10,15 @@
  " let Vundle manage Vundle, required
  Plugin 'VundleVim/Vundle.vim'
@@ -41,7 +41,7 @@
  " Make {{{
  let g:asyncrun_open=10
  autocmd! BufWritePost $MYVIMRC nested source %
-@@ -348,106 +330,8 @@
+@@ -350,106 +332,8 @@
  noremap <Leader>ts :term<CR>
  noremap <Leader>tv :vertical term<CR>
  " }}}

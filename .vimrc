@@ -423,6 +423,8 @@ let g:airline#extensions#whitespace#mixed_indent_algo = 2
 " General {{{
 let mapleader = " "
 let maplocalleader = " "
+" Why is this not default, I don't get it
+noremap Y y$
 
 noremap n h
 noremap N H

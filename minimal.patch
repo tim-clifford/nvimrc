@@ -1,5 +1,5 @@
---- .vimrc	2021-01-19 01:15:33.532652202 +0000
-+++ .vimrc-minimal	2021-01-19 01:15:42.252641266 +0000
+--- .vimrc	2021-01-20 04:45:42.306968659 +0000
++++ .vimrc-minimal	2021-01-20 04:45:59.443541290 +0000
 @@ -1,41 +1,3 @@
 -" Plugins {{{
 -set nocompatible              " be iMproved, required
@@ -199,7 +199,7 @@
  " Keyboard Mappings {{{
  " General {{{
  let mapleader = " "
-@@ -485,106 +304,4 @@
+@@ -487,106 +306,4 @@
  noremap <Leader>ts :term<CR>
  noremap <Leader>tv :vertical term<CR>
  " }}}
