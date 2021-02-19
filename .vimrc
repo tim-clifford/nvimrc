@@ -19,7 +19,7 @@ Plugin 'honza/vim-snippets'
 Plugin 'scrooloose/nerdcommenter'
 Plugin 'lervag/vimtex'
 Plugin 'dracula/vim', { 'name': 'dracula' }
-Plugin 'tim-clifford/jupyter-vim'
+Plugin 'jupyter-vim/jupyter-vim'
 Plugin 'tim-clifford/jupytext.vim'
 Plugin 'vim-airline/vim-airline'
 Plugin 'lambdalisue/battery.vim'
@@ -27,10 +27,12 @@ Plugin 'puremourning/vimspector'
 Plugin 'junegunn/fzf'
 Plugin 'junegunn/fzf.vim'
 Plugin 'dag/vim-fish'
-"Plugin 'pandysong/ghost-text.vim', { 'do': ':GhostInstall' }
+Plugin 'metakirby5/codi.vim'
 Plugin 'ap/vim-css-color'
 Plugin 'skywind3000/asyncrun.vim'
 Plugin 'powerman/vim-plugin-AnsiEsc'
+Plugin 'tim-clifford/vim-dirdiff'
+
 
 " All of your Plugins must be added before the following line
 call vundle#end()            " required
@@ -38,7 +40,7 @@ filetype plugin indent on    " required
 " }}}
 " General {{{
 
-" This set is for smallbrains only
+" This is for smallbrains only
 "set mouse=a
 
 " Colors
@@ -62,15 +64,14 @@ set foldmethod=marker
 set noshowmode
 set nowrap
 set number
-autocmd FileType markdown set wrap
 
-function SetRelativenumber()
+fun! SetRelativenumber()
 	" Help files don't get numbering so without this check we'll get an
 	" annoying shift in the text when going in and out of a help buffer
 	if &filetype != "help"
 		set relativenumber
 	endif
-endfunction
+endfun
 autocmd BufEnter,FocusGained * call SetRelativenumber()
 autocmd BufLeave,FocusLost   * set norelativenumber
 set scrolloff=8
@@ -80,6 +81,7 @@ set colorcolumn=80
 " Misc
 set undodir=~/.vim/undodir
 set undofile
+set hidden
 set shortmess+=F
 
 command DiffOrig vert new | set bt=nofile | r # | 0d_ | diffthis
@@ -88,7 +90,7 @@ command DiffOrig vert new | set bt=nofile | r # | 0d_ | diffthis
 " Visual Selection {{{
 " public domain code by stack overflow user FocusedWolf
 " https://stackoverflow.com/a/6271254
-function! s:get_visual_selection()
+fun! s:get_visual_selection()
 	" Why is this not a built-in Vim script function?!
 	let [line_start, column_start] = getpos("'<")[1:2]
 	let [line_end, column_end] = getpos("'>")[1:2]
@@ -99,17 +101,30 @@ function! s:get_visual_selection()
 	let lines[-1] = lines[-1][:column_end - (&selection == 'inclusive' ? 1 : 2)]
 	let lines[0] = lines[0][column_start - 1:]
 	return join(lines, "\n")
-endfunction
+endfun
 " }}}
 " Maths {{{
-function! DoMathsToRegister(reg)
+fun! DoMathsSubstitute()
+	let [line_start, column_start] = getpos("'<")[1:2]
+	let [line_end, column_end] = getpos("'>")[1:2]
+	let res = system("qalc -t '".s:get_visual_selection()."'|tr -d '\n'")
+	exe "norm ".line_start."G".column_start."|v"
+	          \.line_end  ."G".column_end  ."|c".res
+endfun
+fun! DoMathsQuickfix()
+	execute "term qalc '".s:get_visual_selection()."'; exit; read -p x"
+	"execute "term sh -c 'qalc '".'"'."'".'"'."'".s:get_visual_selection()."'".'"'."'".'"'."'' && read -p"
+	"execute "term ++close qalc '".s:get_visual_selection()."'; read -p '' x"
+	"call asyncrun#run("", "", "qalc '".s:get_visual_selection()."'")
+endfun
+fun! DoMathsToRegister(reg)
 	let res = system("qalc -t '".s:get_visual_selection()."'|tr -d '\n'")
 	call setreg(a:reg, res)
-endfunction
+endfun
 " }}}
 " Format {{{
 " Alignment {{{
-function! AlignWhitespaceFile(delim, aligner, splitregex)
+fun! AlignWhitespaceFile(delim, aligner, splitregex)
 	let file = getline(0, line("$"))
 	let aligned = s:AlignWhitespaceLines(
 				\ file, a:delim, a:aligner, a:splitregex)
@@ -117,9 +132,9 @@ function! AlignWhitespaceFile(delim, aligner, splitregex)
 	for i in range(len(aligned))
 		call setline(i+1, aligned[i])
 	endfor
-endfunction
+endfun
 
-function! AlignWhitespaceVisual(delim, aligner, splitregex)
+fun! AlignWhitespaceVisual(delim, aligner, splitregex)
 	let [line_start, column_start] = getpos("'<")[1:2]
 	let [line_end, column_end] = getpos("'>")[1:2]
 	let selection = split(s:get_visual_selection(), "\n")
@@ -129,28 +144,35 @@ function! AlignWhitespaceVisual(delim, aligner, splitregex)
 	for i in range(len(aligned))
 		call setline(line_start + i, aligned[i])
 	endfor
-endfunction
+endfun
 
-function! s:AlignWhitespaceLines(lines, delim, aligner, splitregex)
+fun! s:AlignWhitespaceLines(lines, delim, aligner, splitregex)
 	" Only align if there if there are tabs after non-whitespace
 	" Don't expect this to also remove trailing whitespace
 	" Fix | in regex
 	let splitregex = substitute(a:splitregex, '|', '\\|', 'g')
 	let aligned = a:lines
 	let last = []
-	while last != aligned
-		let last = aligned
+	let current_depth = 0
+	let matches = [''] " dummy
+	let testlist = range(len(a:lines))
+	call map(testlist, '-1')
+	while matches != testlist
+		let last = aligned[:]
 		" Find longest line and get matches for later
 		let longest = -1
 		let matches = []
 		for line in aligned
-			let m = match(line, '[^\t ]\zs\s*\%('.splitregex.'\)\s*[^\t ]')
+			let m = match(line, '[^\t ]\zs\s*\%('.splitregex.'\)\s*[^\t ]',
+						\ current_depth)
 			" we'll need these later
 			let matches = matches + [m]
 			if m > longest
 				let longest = m
 			endif
 		endfor
+		" Set the depth for the next pass
+		let current_depth = longest + 1
 		" Apply alignment
 		for i in range(len(aligned))
 			let line = aligned[i]
@@ -158,7 +180,7 @@ function! s:AlignWhitespaceLines(lines, delim, aligner, splitregex)
 			let matchend = match(line,
 					\ '[^\t ]\s*\%('.splitregex.'\)\s*\zs[^\t ]', matchstart-1)
 			" Do nothing if there are no matches on the line
-			if matchstart != -1 && matchend > matchstart
+			if matchstart != -1 && matchend >= matchstart
 				let newline = line[:matchstart-1]
 						\ . repeat(a:aligner,longest - matchstart)
 						\ . a:delim . line[matchend:]
@@ -167,11 +189,11 @@ function! s:AlignWhitespaceLines(lines, delim, aligner, splitregex)
 		endfor
 	endwhile
 	return aligned
-endfunction
+endfun
 
 " }}}
 " Indent {{{
-function IndentFile()
+fun! IndentFile()
 	let winview = winsaveview()
 	silent :w
 	call system("indent -nbad -bap -nbc -bbo -hnl -br -brs -c33 -cd33 -ncdb
@@ -187,188 +209,185 @@ function IndentFile()
 	endif
 	silent :w
 	call winrestview(winview)
-endfunction
+endfun
 command Indent call IndentFile()
 " }}}
 " Trim {{{
-function TrimWhitespace()
+fun! TrimWhitespace()
 	let l:line = line('.')
 	let l:save = winsaveview()
 	keeppatterns %s/\s\+$//eg
 	call winrestview(l:save)
 	echo l:line
 	execute ':'.l:line
-endfunction
+endfun
 " }}}
 " Email {{{
-function! CombineEmailLines()
+fun! FormatEmailRead()
 	" Yeah, I am big brain
-	set textwidth=80
+	set textwidth=78
 	silent g/\v^%(Cc|Bcc|Reply-To):\s*$/d
-	silent g/\v^(%(\> )*)$\n\zs^\1.+$\ze\n^\1$/norm! gqj
+	silent g/\v^(%(\> *)*)$\n\zs^\1.+$\ze\n^\1$/norm! gqj
 	normal gg
-endfunction
+endfun
 
-function! FormatEmail()
-	"g/\v^(%(\> *)*)\s*$\n%(^\1.+$\n)*\zs%(^\1.+$\n)+^\1\s*$/norm! gq
-
-	set textwidth=80
-	normal gg
-	call search('\n\n', 'e')
-	normal! j
-	" don't format the last paragraph
-	while match(join(getline(line('.')+1,'$'), "\n"), '\n\n') != -1
-		normal! gqj
+fun! FormatEmailWrite()
+	" Just accept it, my regex skills are glorious
+	set textwidth=78
+	let indent_specifier       = '%(\> *)*'
+	let date_specifier         = '\n^'.indent_specifier.'On .*, .* wrote:\s*\n'
+	let header_start_specifier = '^'.indent_specifier.'\s*[-_]+.*\n'
+	" Don't want to join intentionally split things, for now I will assume
+	" anything >60 chars can be split
+	let g:paragraph_specifier  =
+		\ '\v^('.indent_specifier.')\s*$\n%('.header_start_specifier.')@!'
+		\.'\zs%(^\1\s*[^>].{60,}$\ze\n)+%(^\1\s*[^>].*$\ze\n)%(^\1\s*$)+'
+	"let g:paragraph_specifier =
+		"\ '\v^('.indent_specifier.')\s*$\n%('.header_start_specifier.')@!'
+		"\.'\zs%(^\1[^>]\s*[^\t ].*$\ze\n){2,}%(^\1\s*$)+'
+		"\.'%('.date_specifier.'|'.header_start_specifier.'|%$)@!'
+	while search(g:paragraph_specifier) != 0
+		execute 's/\v^'.indent_specifier.'\s*[^ ].*\zs\n^'.indent_specifier.'/ /'
 	endwhile
-endfunction
+endfun
 
 augroup EmailFormatting
-	autocmd! BufWritePre *.eml            call CombineEmailLines()
-	autocmd! BufReadPost *.eml            call FormatEmail()
-	autocmd! BufWritePre /tmp/mutt*       call CombineEmailLines()
-	autocmd! BufReadPost /tmp/mutt*       call FormatEmail()
-	autocmd! BufWritePre /tmp/neomutt*    call CombineEmailLines()
-	autocmd! BufReadPost /tmp/neomutt*    call FormatEmail()
+	autocmd! BufWritePre *.eml            call FormatEmailWrite()
+	autocmd! BufReadPost *.eml            call FormatEmailRead()
+	autocmd! BufWritePre /tmp/mutt*       call FormatEmailWrite()
+	autocmd! BufReadPost /tmp/mutt*       call FormatEmailRead()
+	autocmd! BufWritePre /tmp/neomutt*    call FormatEmailWrite()
+	autocmd! BufReadPost /tmp/neomutt*    call FormatEmailRead()
 augroup END
 " }}}
 " }}}
 " Clipboard {{{
-map <leader>pa ggdG"+p
-map <leader>pi ggdG"+p:Indent<CR>
-map <leader>ya gg"+yG
+nnoremap <leader>pa ggdG"+p
+nnoremap <leader>pi ggdG"+p:Indent<CR>
+nnoremap <leader>ya gg"+yG
 " }}}
-" NERDTree {{{
-"autocmd StdinReadPre * let s:std_in=1
-"autocmd VimEnter * if argc() == 0 && !exists("s:std_in") | NERDTree | endif
+" mdpytex {{{
+" Jupyter {{{
+fun! JupyterVimStart()
+	term ++close ++hidden jupyter console
+	call jupyter#load#MakeStandardCommands()
+	let b:jupyter_kernel_type = 'python'
+	JupyterConnect
+	sleep 2 " You didn't see this
+	call jupyter#SendCode(
+		\ "import sys; sys.stdout=open('.jupyter_out','w'); "
+		\."sys.stderr=open('.jupyter_err','w')"
+	\)
+endfun
+
+fun! JupyterExit()
+	call system("pkill -9 jupyter")
+endfun
+
+fun! JupyterRunCellIntoMarkdown()
+	" Check we're in a python cell
+	if !((search('^```','bWcn') == search('^```python$','bWcn')
+			\ && (search('^```','bWcn') != 0)))
+		echo "Not in a python cell"
+		return
+	endif
+
+	" Clear last output
+	call system('rm .jupyter_out; echo "" > .jupyter_out')
+	call system('rm .jupyter_err; echo "" > .jupyter_err')
+	call jupyter#SendCode('sys.stdout = open(".jupyter_out","a")')
+	call jupyter#SendCode('sys.stderr = open(".jupyter_err","a")')
+
+	call jupyter#SendCell()
+	call jupyter#SendCode(
+				\ "print('----------output end----------',flush=True)\n")
+
+	" Go to end of cell
+	if search('^```$','Wc') == 0
+		echo "No closing cell delimiter"
+		return 1
+	endif
+
+	if search('```output','Wn') == line('.') + 1
+		" Remove existing output
+		norm! j
+		s/```output\n\%(\%(```\)\@!.*\n\)*```\n//
+		norm! k
+	endif
+
+	" Put output in new block
+	while readfile('.jupyter_out')[-1] != "----------output end----------"
+		sleep 10m
+		" Have we encountered an error? This isn't working yet
+		if match(readfile('.jupyter_err')[-1], '^[^ ]*Error: ') != -1
+			break
+		endif
+	endwhile
+
+	" Don't pollute with lots of empty output blocks
+	if readfile('.jupyter_out')[1:-2] != []
+		call append(line('.'), ['```output','```'])
+		call append(line('.')+1,readfile('.jupyter_out')[1:-2])
+	endif
+endfun
+
+fun! JupyterRunAllIntoMarkdown()
+	norm gg
+	while search('^```python', 'cW') != 0
+		if JupyterRunCellIntoMarkdown() == 1
+			return 1
+		endif
+	endwhile
+endfun
+
+let b:jupyter_kernel_type = 'python'
+let g:jupyter_cell_separators = ['```py','```']
+let g:markdown_fenced_languages = ['python']
+augroup pymd
+	autocmd!
+	autocmd VimLeave *.ipynb,*.md call JupyterExit()
+	autocmd BufEnter *.ipynb,*.md call jupyter#load#MakeStandardCommands()
+	autocmd BufEnter *.ipynb set filetype=markdown.python
+augroup END
 " }}}
-" TermPDF {{{
-let g:current_page = 0
-let g:total_pages = 0
-let g:termpdf_lastcalled = 0
-function TermPDF(file) abort
-	" Implement some basic throttling
-	let time = str2float(reltimestr(reltime())) * 1000.0
-	if time - g:termpdf_lastcalled > 1000
-		call system('kitty @ kitten termpdf.py ' . a:file)
-		" Remember the last opened page but don't fail when the number of
-		" pages has changed
-		let g:total_pages = str2nr(system("pdfinfo "
-					\ . a:file . " | grep Pages | sed 's/[^0-9]*//'"))
-		if g:current_page == 0
-			let g:current_page = 1
-		elseif g:current_page <= g:total_pages
-			call system('sleep 0.2 && tpdfc goto ' . g:current_page)
-		else
-			let g:current_page = 1
-		endif
-		let g:termpdf_lastcalled = time
-	endif
-endfunction
-
-function TermPDFNext() abort
-	if g:current_page < g:total_pages
-		call system('tpdfc forward 1')
-		let g:current_page += 1
-	endif
-endfunction
-
-function TermPDFPrev() abort
-	if g:current_page > 1
-		call system('tpdfc back 1')
-		let g:current_page -= 1
-	endif
-endfunction
-
-function TermPDFEnd() abort
-	call system('tpdfc last')
-endfunction
-
-function TermPDFClose() abort
-	call system('kitty @ close-window --match title:termpdf')
-endfunction
-function TermPDFAutoUpdateIfChanged(timer)
-	if filereadable(getcwd().'/.jupyter-pdf-changed')
-		call TermPDF(getcwd().'/jupyter_plots.pdf')
-		call system('rm '.getcwd().'/.jupyter-pdf-changed')
-		if g:current_page < g:total_pages
-			call TermPDFEnd()
-		endif
-	endif
-endfunction
-let g:timerid = -1
-function TermPDFAutoUpdateStart()
-	if g:timerid == -1
-		let g:timerid = timer_start(1000,
-					\ 'TermPDFAutoUpdateIfChanged', {'repeat': -1})
-	endif
-endfunction
-function TermPDFAutoUpdateStop()
-	if g:timerid != -1
-		timer_stop(g:timerid)
-	endif
-endfunction
+" Pandoc {{{
+fun! PandocMake()
+	execute ':AsyncRun sh -c '."'".'(pandoc '
+		\ . ' --defaults ~/.config/pandoc/pandoc.yaml '
+		\ . expand('%:t:r').'.md -o '.expand('%:t:r').'.pdf '
+		\ . '-V geometry:margin=1in '
+		\ . '-H ~/.config/pandoc/draculaheader.tex '
+		\ . '-H ~/.config/pandoc/commonheader.tex '
+		\ . '--highlight-style=/home/tim/.config/pandoc/dracula.theme '
+		\ . '--pdf-engine=xelatex '.")'"
+		"\ . '&& if ! pgrep zathura >/dev/null; then zathura '
+		"\ . expand('%:t:r').'.pdf & fi)'."'"
+endfun
 " }}}
 " Vimtex {{{
 let g:tex_flavor = 'latex'
 let g:vimtex_view_automatic = 0
-function VimtexCallback()
-	call TermPDF(escape(b:vimtex.out()," "))
-endfunction
-function VimtexExit()
-	call TermPDFClose()
+fun! VimtexCallback()
+	echo "TODO: Make this open zathura"
+endfun
+fun! VimtexExit()
 	:VimtexClean
 	" Remove extra auxiliary files that I don't particularly care about
 	call system("rm *.run.xml *.bbl *.synctex.gz")
-endfunction
+endfun
 augroup vimtex
 	autocmd VimLeave *.tex call VimtexExit()
 	autocmd User VimtexEventCompileSuccess call VimtexCallback()
 	autocmd InsertLeave *.tex :w
-	" <C-PgUp> and <C-PgDn>
-	autocmd FileType tex,markdown nnoremap [5;5~ :call TermPDFPrev()<CR>
-	autocmd FileType tex,markdown nnoremap [6;5~ :call TermPDFNext()<CR>
-	autocmd FileType markdown call TermPDFAutoUpdateStart()
 augroup END
 " }}}
-" Jupyter {{{
-function JupyterStart()
-	call system('kitty @ kitten jupyter.py '.getcwd())
-	:JupyterConnect
-endfunction
-function JupyterExit()
-	call TermPDFClose()
-	call system("pkill -9 jupyter
-				\ && kitty @ close-window --match title:vimjupyter")
-endfunction
-function JupyterCompile()
-	silent execute "w"
-	call system('pandoc '.expand('%:t:r').'.md '
-	          \ '-o jupyter_notebook.pdf -V geometry:margin=1in')
-	call TermPDF(getcwd().'/jupyter_notebook.pdf')
-endfunction
-"function JupyterRunAllIntoMarkdown()
-	""call system('pkill -9 jupyter')
-	""call JupyterStart()
-	"normal gg
-	"let flags = "c"
-	"while search("```python", flags) != 0
-		"call jupyter#SendCell()
-		"call search("```")
-		"call system("sleep 0.5")
-		"call append(line('.'),matchstr(readfile('.jupyter-out'),"OUT["))
-		"let flags = ""
-	"endwhile
-"endfunction
-"let g:jupyter_monitor_console = 1
-let g:jupyter_mapkeys = 0
-let b:jupyter_kernel_type = 'python'
-let g:jupyter_cell_separators = ['```py','```']
-let g:markdown_fenced_languages = ['python']
-augroup jupyter
-	autocmd VimLeave *.ipynb call JupyterExit()
-	autocmd BufEnter *.ipynb call jupyter#load#MakeStandardCommands()
-	autocmd BufEnter *.ipynb set filetype=markdown.python
-augroup END
+fun! MdpytexRestartAndMake()
+	call JupyterExit()
+	sleep 2
+	call JupyterVimStart()
+	call JupyterRunAllIntoMarkdown()
+	call PandocMake()
+endfun
 " }}}
 " YouCompleteMe {{{
 au VimEnter * let g:ycm_semantic_triggers.tex=g:vimtex#re#youcompleteme
@@ -380,7 +399,7 @@ let g:ycm_filetype_blacklist={
 " Make {{{
 let g:asyncrun_open=10
 autocmd! BufWritePost $MYVIMRC nested source %
-function MakeAndRun()
+fun! MakeAndRun()
 	if filereadable('start.sh')
 		:AsyncStop
 		while g:asyncrun_status == 'running'
@@ -395,16 +414,7 @@ function MakeAndRun()
 		execute ':AsyncRun ./'.expand('%:t')
 	elseif &filetype == 'markdown'
 		:AsyncStop
-		execute ':AsyncRun pandoc '
-			\ . ' --defaults ~/.config/pandoc/pandoc.yaml '
-			\ . expand('%:t:r').'.md -o ' .expand('%:t:r').'.pdf '
-			\ . '-V geometry:margin=1in '
-			\ . '-H ~/.config/pandoc/draculaheader.tex '
-			\ . '--pdf-engine=xelatex'
-		while g:asyncrun_status == 'running'
-			sleep 1
-		endwhile
-		call TermPDF(getcwd().'/'.expand('%:t:r').'.pdf')
+		call MdpytexRestartAndMake()
 	else
 		" Assumes makefile exists and binary filename is current filename
 		" minus extension
@@ -414,10 +424,29 @@ function MakeAndRun()
 		endwhile
 		call system('./'.expand('%:r').'>stdout.txt 2>stderr.txt&')
 	endif
-endfunction
+endfun
+fun! Make()
+	if &filetype == 'markdown'
+		call PandocMake()
+	else
+		:make
+	endif
+endfun
 " }}}
 " Airline {{{
 let g:airline#extensions#whitespace#mixed_indent_algo = 2
+" }}}
+" Codi {{{
+fun! s:qalc_preproc(line)
+	return substitute(a:line, '\n', '', 'g')
+endfun
+let g:codi#interpreters = {
+	\ 'qalc': {
+		\ 'bin': 'qalc',
+		\ 'prompt': '^> ',
+		\ 'preprocess': function('s:qalc_preproc'),
+		\ },
+	\ }
 " }}}
 " Keyboard Mappings {{{
 " General {{{
@@ -445,12 +474,15 @@ noremap J N
 noremap <leader>k za
 " }}}
 " Maths {{{
-noremap <leader>x :call DoMathsToRegister(v:register)<CR>
+noremap <leader>xr :call DoMathsQuickfix()<CR>
+noremap <leader>xx :call DoMathsToRegister(v:register)<CR>
+noremap <leader>xs :call DoMathsSubstitute()<CR>
+noremap <leader>xc :term ++close qalc<CR>
 " }}}
 " Format {{{
-nnoremap <leader>o :call   AlignWhitespaceFile('    ',' ','\t')<CR>
+nnoremap <leader>o :call   AlignWhitespaceFile('  ',' ','\t')<CR>
 " Let the strategy be more aggressive for visual selection
-vnoremap <leader>o :call AlignWhitespaceVisual('    ',' ','  \|\t')<CR>
+vnoremap <leader>o :call AlignWhitespaceVisual('  ',' ','  \|\t')<CR>
 noremap <leader>i :Indent<CR>
 " }}}
 " Splits {{{
@@ -475,7 +507,7 @@ noremap <leader>sj <C-W>n
 noremap <leader>sJ <C-W>N
 " }}}
 " Make {{{
-noremap <Leader>mm :wa <bar> make <CR>
+noremap <Leader>mm :wa <bar> call Make() <CR>
 noremap <Leader>mr :wa <bar> call MakeAndRun() <CR>
 " }}}
 " Terminal {{{
@@ -501,38 +533,23 @@ let g:UltiSnipsExpandTrigger="<c-e>"
 let g:UltiSnipsJumpForwardTrigger="<c-b>"
 let g:UltiSnipsJumpBackwardTrigger="<c-z>"
 " }}}
-" Vimtex {{{
-nnoremap <Leader>lx :call TermPDFClose()<CR>
-" }}}
 " Jupyter {{{
-" Run current file
-nnoremap <leader>jr :JupyterRunFile<CR>
-nnoremap <leader>ji :PythonImportThisFile<CR>
-
-" Change to directory of current file
-nnoremap <leader>jd :JupyterCd %:p:h<CR>
-
-" Send a selection of lines
-nnoremap <leader>jx :call jupyter#SendCell() <bar> /```py<CR>
-nnoremap <leader>je :JupyterSendRange<CR>
-nmap     <leader>je <Plug>JupyterRunTextObj
-vmap     <leader>je <Plug>JupyterRunVisual
-
-nnoremap <leader>ju :JupyterUpdateShell<CR>
-
-" Debugging maps
-nnoremap <leader>jb :PythonSetBreak<CR>
-
-" Kitty side panel
-nnoremap <leader>jj :call JupyterStart()<CR>
-nnoremap <leader>jp :call JupyterCompile()<CR>
+" Start
+nnoremap <leader>jj :call JupyterVimStart()<CR>
 nnoremap <leader>jq :call JupyterExit()<CR>
+
+" Run
+nnoremap <leader>jx :call JupyterRunCellIntoMarkdown()<CR>
+nnoremap <leader>ja :call JupyterRunAllIntoMarkdown()<CR>
+nnoremap <leader>je :JupyterSendRange<CR>
 
 " goto cell
 nnoremap <leader>jc /```py<CR>
 nnoremap <leader>jC ?```py<CR>
-" run all
-nnoremap <leader>ja :%g/```py/JupyterSendCell<CR>G
+
+" misc
+nnoremap <leader>ju :JupyterUpdateShell<CR>
+nnoremap <leader>jb :PythonSetBreak<CR>
 " }}}
 " YouCompleteMe {{{
 " Avoid confilict with vimspector
@@ -556,8 +573,10 @@ nmap <leader>dq :VimspectorReset<CR>
 " fzf {{{
 nnoremap <leader>f :GFiles<CR>
 nnoremap <leader>F :Files<CR>
+nnoremap <leader>b :Buffers<CR>
 " }}}
 " Fugitive {{{
+noremap <leader>g :Gstatus<CR>
 let g:nremap = {
 \	'o': 'k',
 \	'O': 'K',

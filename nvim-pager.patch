@@ -1,6 +1,19 @@
---- .vimrc-nvim	2021-01-20 04:45:59.456874550 +0000
-+++ .vimrc-nvim-pager	2021-01-20 04:45:59.470207810 +0000
-@@ -10,22 +10,15 @@
+--- .vimrc	2021-02-19 20:40:36.972578212 +0000
++++ .vimrc-nvim-pager	2021-02-19 20:52:59.458503861 +0000
+@@ -1,33 +1,21 @@
+ " Plugins {{{
+ set nocompatible              " be iMproved, required
+-set encoding=utf-8
+ filetype off                  " required
+ " set the runtime path to include Vundle and initialize
+-set rtp+=~/.vim/bundle/Vundle.vim
+-call vundle#begin()
++set rtp+=~/.config/nvim/bundle/Vundle.vim
++"call vundle#begin()
+ " alternatively, pass a path where Vundle should install plugins
+-"call vundle#begin('~/some/path/here')
++call vundle#begin('~/.config/nvim/bundle')
+ 
  " let Vundle manage Vundle, required
  Plugin 'VundleVim/Vundle.vim'
  
@@ -10,26 +23,156 @@
 -Plugin 'sirver/ultisnips'
 -Plugin 'honza/vim-snippets'
  Plugin 'scrooloose/nerdcommenter'
+-Plugin 'lervag/vimtex'
  Plugin 'dracula/vim', { 'name': 'dracula' }
+-Plugin 'jupyter-vim/jupyter-vim'
+-Plugin 'tim-clifford/jupytext.vim'
  Plugin 'vim-airline/vim-airline'
+-Plugin 'lambdalisue/battery.vim'
+-Plugin 'puremourning/vimspector'
  Plugin 'junegunn/fzf'
  Plugin 'junegunn/fzf.vim'
  Plugin 'dag/vim-fish'
--Plugin 'raghur/vim-ghost', { 'do': ':GhostInstall' }
+-Plugin 'metakirby5/codi.vim'
  Plugin 'ap/vim-css-color'
  Plugin 'skywind3000/asyncrun.vim'
  Plugin 'powerman/vim-plugin-AnsiEsc'
--Plugin 'glacambre/firenvim'
- 
- " All of your Plugins must be added before the following line
- call vundle#end()            " required
-@@ -229,17 +222,6 @@
- map <leader>pi ggdG"+p:Indent<CR>
- map <leader>ya gg"+yG
+@@ -83,9 +71,6 @@
+ set undofile
+ set hidden
+ set shortmess+=F
+-
+-command DiffOrig vert new | set bt=nofile | r # | 0d_ | diffthis
+-		\ | wincmd p | diffthis
  " }}}
--" NERDTree {{{
--"autocmd StdinReadPre * let s:std_in=1
--"autocmd VimEnter * if argc() == 0 && !exists("s:std_in") | NERDTree | endif
+ " Visual Selection {{{
+ " public domain code by stack overflow user FocusedWolf
+@@ -266,136 +251,6 @@
+ nnoremap <leader>pi ggdG"+p:Indent<CR>
+ nnoremap <leader>ya gg"+yG
+ " }}}
+-" mdpytex {{{
+-" Jupyter {{{
+-fun! JupyterVimStart()
+-	term ++close ++hidden jupyter console
+-	call jupyter#load#MakeStandardCommands()
+-	let b:jupyter_kernel_type = 'python'
+-	JupyterConnect
+-	sleep 2 " You didn't see this
+-	call jupyter#SendCode(
+-		\ "import sys; sys.stdout=open('.jupyter_out','w'); "
+-		\."sys.stderr=open('.jupyter_err','w')"
+-	\)
+-endfun
+-
+-fun! JupyterExit()
+-	call system("pkill -9 jupyter")
+-endfun
+-
+-fun! JupyterRunCellIntoMarkdown()
+-	" Check we're in a python cell
+-	if !((search('^```','bWcn') == search('^```python$','bWcn')
+-			\ && (search('^```','bWcn') != 0)))
+-		echo "Not in a python cell"
+-		return
+-	endif
+-
+-	" Clear last output
+-	call system('rm .jupyter_out; echo "" > .jupyter_out')
+-	call system('rm .jupyter_err; echo "" > .jupyter_err')
+-	call jupyter#SendCode('sys.stdout = open(".jupyter_out","a")')
+-	call jupyter#SendCode('sys.stderr = open(".jupyter_err","a")')
+-
+-	call jupyter#SendCell()
+-	call jupyter#SendCode(
+-				\ "print('----------output end----------',flush=True)\n")
+-
+-	" Go to end of cell
+-	if search('^```$','Wc') == 0
+-		echo "No closing cell delimiter"
+-		return 1
+-	endif
+-
+-	if search('```output','Wn') == line('.') + 1
+-		" Remove existing output
+-		norm! j
+-		s/```output\n\%(\%(```\)\@!.*\n\)*```\n//
+-		norm! k
+-	endif
+-
+-	" Put output in new block
+-	while readfile('.jupyter_out')[-1] != "----------output end----------"
+-		sleep 10m
+-		" Have we encountered an error? This isn't working yet
+-		if match(readfile('.jupyter_err')[-1], '^[^ ]*Error: ') != -1
+-			break
+-		endif
+-	endwhile
+-
+-	" Don't pollute with lots of empty output blocks
+-	if readfile('.jupyter_out')[1:-2] != []
+-		call append(line('.'), ['```output','```'])
+-		call append(line('.')+1,readfile('.jupyter_out')[1:-2])
+-	endif
+-endfun
+-
+-fun! JupyterRunAllIntoMarkdown()
+-	norm gg
+-	while search('^```python', 'cW') != 0
+-		if JupyterRunCellIntoMarkdown() == 1
+-			return 1
+-		endif
+-	endwhile
+-endfun
+-
+-let b:jupyter_kernel_type = 'python'
+-let g:jupyter_cell_separators = ['```py','```']
+-let g:markdown_fenced_languages = ['python']
+-augroup pymd
+-	autocmd!
+-	autocmd VimLeave *.ipynb,*.md call JupyterExit()
+-	autocmd BufEnter *.ipynb,*.md call jupyter#load#MakeStandardCommands()
+-	autocmd BufEnter *.ipynb set filetype=markdown.python
+-augroup END
+-" }}}
+-" Pandoc {{{
+-fun! PandocMake()
+-	execute ':AsyncRun sh -c '."'".'(pandoc '
+-		\ . ' --defaults ~/.config/pandoc/pandoc.yaml '
+-		\ . expand('%:t:r').'.md -o '.expand('%:t:r').'.pdf '
+-		\ . '-V geometry:margin=1in '
+-		\ . '-H ~/.config/pandoc/draculaheader.tex '
+-		\ . '-H ~/.config/pandoc/commonheader.tex '
+-		\ . '--highlight-style=/home/tim/.config/pandoc/dracula.theme '
+-		\ . '--pdf-engine=xelatex '.")'"
+-		"\ . '&& if ! pgrep zathura >/dev/null; then zathura '
+-		"\ . expand('%:t:r').'.pdf & fi)'."'"
+-endfun
+-" }}}
+-" Vimtex {{{
+-let g:tex_flavor = 'latex'
+-let g:vimtex_view_automatic = 0
+-fun! VimtexCallback()
+-	echo "TODO: Make this open zathura"
+-endfun
+-fun! VimtexExit()
+-	:VimtexClean
+-	" Remove extra auxiliary files that I don't particularly care about
+-	call system("rm *.run.xml *.bbl *.synctex.gz")
+-endfun
+-augroup vimtex
+-	autocmd VimLeave *.tex call VimtexExit()
+-	autocmd User VimtexEventCompileSuccess call VimtexCallback()
+-	autocmd InsertLeave *.tex :w
+-augroup END
+-" }}}
+-fun! MdpytexRestartAndMake()
+-	call JupyterExit()
+-	sleep 2
+-	call JupyterVimStart()
+-	call JupyterRunAllIntoMarkdown()
+-	call PandocMake()
+-endfun
 -" }}}
 -" YouCompleteMe {{{
 -au VimEnter * let g:ycm_semantic_triggers.tex=g:vimtex#re#youcompleteme
@@ -41,7 +184,26 @@
  " Make {{{
  let g:asyncrun_open=10
  autocmd! BufWritePost $MYVIMRC nested source %
-@@ -350,106 +332,8 @@
+@@ -436,18 +291,6 @@
+ " Airline {{{
+ let g:airline#extensions#whitespace#mixed_indent_algo = 2
+ " }}}
+-" Codi {{{
+-fun! s:qalc_preproc(line)
+-	return substitute(a:line, '\n', '', 'g')
+-endfun
+-let g:codi#interpreters = {
+-	\ 'qalc': {
+-		\ 'bin': 'qalc',
+-		\ 'prompt': '^> ',
+-		\ 'preprocess': function('s:qalc_preproc'),
+-		\ },
+-	\ }
+-" }}}
+ " Keyboard Mappings {{{
+ " General {{{
+ let mapleader = " "
+@@ -519,93 +362,9 @@
  noremap <Leader>ts :term<CR>
  noremap <Leader>tv :vertical term<CR>
  " }}}
@@ -59,38 +221,23 @@
 -let g:UltiSnipsJumpForwardTrigger="<c-b>"
 -let g:UltiSnipsJumpBackwardTrigger="<c-z>"
 -" }}}
--" Vimtex {{{
--nnoremap <Leader>lx :call TermPDFClose()<CR>
--" }}}
 -" Jupyter {{{
--" Run current file
--nnoremap <leader>jr :JupyterRunFile<CR>
--nnoremap <leader>ji :PythonImportThisFile<CR>
--
--" Change to directory of current file
--nnoremap <leader>jd :JupyterCd %:p:h<CR>
--
--" Send a selection of lines
--nnoremap <leader>jx :call jupyter#SendCell() <bar> /```py<CR>
--nnoremap <leader>je :JupyterSendRange<CR>
--nmap     <leader>je <Plug>JupyterRunTextObj
--vmap     <leader>je <Plug>JupyterRunVisual
--
--nnoremap <leader>ju :JupyterUpdateShell<CR>
--
--" Debugging maps
--nnoremap <leader>jb :PythonSetBreak<CR>
--
--" Kitty side panel
--nnoremap <leader>jj :call JupyterStart()<CR>
--nnoremap <leader>jp :call JupyterCompile()<CR>
+-" Start
+-nnoremap <leader>jj :call JupyterVimStart()<CR>
 -nnoremap <leader>jq :call JupyterExit()<CR>
+-
+-" Run
+-nnoremap <leader>jx :call JupyterRunCellIntoMarkdown()<CR>
+-nnoremap <leader>ja :call JupyterRunAllIntoMarkdown()<CR>
+-nnoremap <leader>je :JupyterSendRange<CR>
 -
 -" goto cell
 -nnoremap <leader>jc /```py<CR>
 -nnoremap <leader>jC ?```py<CR>
--" run all
--nnoremap <leader>ja :%g/```py/JupyterSendCell<CR>G
+-
+-" misc
+-nnoremap <leader>ju :JupyterUpdateShell<CR>
+-nnoremap <leader>jb :PythonSetBreak<CR>
 -" }}}
 -" YouCompleteMe {{{
 -" Avoid confilict with vimspector
@@ -114,8 +261,10 @@
  " fzf {{{
  nnoremap <leader>f :GFiles<CR>
  nnoremap <leader>F :Files<CR>
+ nnoremap <leader>b :Buffers<CR>
  " }}}
 -" Fugitive {{{
+-noremap <leader>g :Gstatus<CR>
 -let g:nremap = {
 -\	'o': 'k',
 -\	'O': 'K',
