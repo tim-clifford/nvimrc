@@ -83,7 +83,7 @@ set undofile
 set hidden
 set shortmess+=F
 
-command DiffOrig vert new | set bt=nofile | r # | 0d_ | diffthis
+command! DiffOrig vert new | set bt=nofile | r # | 0d_ | diffthis
 		\ | wincmd p | diffthis
 " }}}
 " Visual Selection {{{
@@ -195,10 +195,10 @@ endfun
 fun! IndentFile()
 	let winview = winsaveview()
 	silent :w
-	call system("indent -nbad -bap -nbc -bbo -hnl -br -brs -c33 -cd33 -ncdb
-	          \ -ce -ci4 -cli0 -d0 -di1 -nfc1 -i4 -ip0 -l80 -lp -npcs -nprs
-	          \ -npsl -sai -saf -saw -ncs -nsc -sob -nfca -cp33 -nss -ts4 -il1
-	          \ . expand('%:t'))
+	call system("indent -nbad -bap -nbc -bbo -hnl -br -brs -c33 -cd33 -ncdb "
+	          \."-ce -ci4 -cli0 -d0 -di1 -nfc1 -i4 -ip0 -l80 -lp -npcs -nprs "
+	          \."-npsl -sai -saf -saw -ncs -nsc -sob -nfca -cp33 -nss -ts4 -il1 "
+	          \.expand('%:t'))
 	:e
 	" Make templates work properly
 	if &filetype == 'cpp'
@@ -209,7 +209,7 @@ fun! IndentFile()
 	silent :w
 	call winrestview(winview)
 endfun
-command Indent call IndentFile()
+command! Indent call IndentFile()
 " }}}
 " Trim {{{
 fun! TrimWhitespace()
@@ -398,6 +398,7 @@ let g:ycm_filetype_blacklist={
 " Make {{{
 let g:asyncrun_open=10
 autocmd! BufWritePost $MYVIMRC nested source %
+execute 'autocmd! BufWritePost '.$HOME.'/.vim/git/.vimrc nested source %'
 fun! MakeAndRun()
 	if filereadable('start.sh')
 		:AsyncStop
