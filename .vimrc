@@ -260,11 +260,6 @@ augroup EmailFormatting
 augroup END
 " }}}
 " }}}
-" Clipboard {{{
-nnoremap <leader>pa ggdG"+p
-nnoremap <leader>pi ggdG"+p:Indent<CR>
-nnoremap <leader>ya gg"+yG
-" }}}
 " mdpytex {{{
 " Jupyter {{{
 fun! JupyterVimStart()
@@ -497,6 +492,11 @@ noremap H I
 noremap j n
 noremap J N
 noremap <leader>k za
+" }}}
+" Clipboard {{{
+nnoremap <leader>pa ggdG"+p
+nnoremap <leader>pi ggdG"+p:Indent<CR>
+nnoremap <leader>ya gg"+yG
 " }}}
 " Maths {{{
 noremap <leader>xr :call DoMathsQuickfix()<CR>
