@@ -436,6 +436,30 @@ endfun
 " Airline {{{
 let g:airline#extensions#whitespace#mixed_indent_algo = 2
 " }}}
+" Project Specific {{{
+fun! ConfigGitHelper(arg)
+	if substitute(getcwd(), '.*/', '', '') == '.config'
+		if filereadable("gith.sh")
+			execute "AsyncRun ./gith.sh --".a:arg
+		else
+			echo "git helper not readable"
+		endif
+	else
+		echo "Not in config directory"
+	endif
+endfun
+fun! ConfigInstaller(arg)
+	if substitute(getcwd(), '.*/', '', '') == '.config'
+		if filereadable("install.sh")
+			execute "AsyncRun ./install.sh --".a:arg
+		else
+			echo "installer not readable"
+		endif
+	else
+		echo "Not in config directory"
+	endif
+endfun
+" }}}
 " Codi {{{
 fun! s:qalc_preproc(line)
 	return substitute(a:line, '\n', '', 'g')
@@ -452,6 +476,7 @@ let g:codi#interpreters = {
 " General {{{
 let mapleader = " "
 let maplocalleader = " "
+nnoremap <leader>v :edit ~/.vim/git/.vimrc<CR>
 " Why is this not default, I don't get it
 noremap Y y$
 
@@ -576,6 +601,17 @@ nnoremap <leader>F :Files<CR>
 nnoremap <leader>b :Buffers<CR>
 " }}}
 " Fugitive {{{
+augroup Fugitive
+	autocmd!
+	autocmd FileType fugitive
+				\ nnoremap <buffer> tr :call ConfigGitHelper("reset")<CR>
+	autocmd FileType fugitive
+				\ nnoremap <buffer> tp :call ConfigGitHelper("push")<CR>
+	autocmd FileType fugitive
+				\ nnoremap <buffer> tg :call ConfigGitHelper("pull")<CR>
+	autocmd FileType fugitive
+				\ nnoremap <buffer> tu :call ConfigInstaller("update")<CR>
+augroup END
 noremap <leader>g :Gstatus<CR>
 let g:nremap = {
 \	'o': 'k',
