@@ -51,7 +51,7 @@ set            termguicolors
 
 " Formatting
 set tabstop=4 softtabstop=4 shiftwidth=4 noexpandtab
-set textwidth=0
+set textwidth=79
 augroup formatting
 	autocmd!
 	autocmd BufWritePre * call TrimWhitespace()
