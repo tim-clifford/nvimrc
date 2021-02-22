@@ -383,6 +383,13 @@ fun! MdpytexRestartAndMake()
 	call PandocMake()
 endfun
 " }}}
+" Cheatsheet {{{
+command! -nargs=+ Help :call Help(<q-args>)
+fun! Help(args)
+	let argsl = split(a:args, ' ')
+	execute 'AsyncRun -mode=terminal curl cht.sh/'.argsl[0].'/'.join(argsl, '+')
+endfun
+" }}}
 " YouCompleteMe {{{
 au VimEnter * let g:ycm_semantic_triggers.tex=g:vimtex#re#youcompleteme
 let g:ycm_filetype_blacklist={
