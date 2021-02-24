@@ -21,7 +21,6 @@ Plugin 'dracula/vim', { 'name': 'dracula' }
 Plugin 'jupyter-vim/jupyter-vim'
 Plugin 'tim-clifford/jupytext.vim'
 Plugin 'vim-airline/vim-airline'
-Plugin 'lambdalisue/battery.vim'
 Plugin 'puremourning/vimspector'
 Plugin 'junegunn/fzf'
 Plugin 'junegunn/fzf.vim'
@@ -75,7 +74,7 @@ autocmd BufEnter,FocusGained * call SetRelativenumber()
 autocmd BufLeave,FocusLost   * set norelativenumber
 set scrolloff=8
 set signcolumn=yes
-set colorcolumn=80
+set colorcolumn=80,120
 
 " Misc
 set undodir=~/.vim/undodir
