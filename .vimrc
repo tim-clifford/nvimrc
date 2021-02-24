@@ -85,6 +85,7 @@ set shortmess+=F
 
 command! DiffOrig vert new | set bt=nofile | r # | 0d_ | diffthis
 		\ | wincmd p | diffthis
+command! Cd cd %:p:h
 " }}}
 " Visual Selection {{{
 " public domain code by stack overflow user FocusedWolf
