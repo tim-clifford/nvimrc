@@ -122,6 +122,7 @@ fun! DoMathsToRegister(reg)
 endfun
 " }}}
 " Format {{{
+com! Act80char nnoremap i gk|nnoremap e gj|set columns=86|set wrap|set linebreak
 " Alignment {{{
 fun! AlignWhitespaceFile(delim, aligner, splitregex)
 	let file = getline(0, line("$"))
