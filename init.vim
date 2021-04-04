@@ -352,7 +352,7 @@ tnoremap <Esc> <C-\><C-n>
 tnoremap <Esc><Esc> <C-\><C-n>
 set timeout timeoutlen=1000  " Default
 set ttimeout ttimeoutlen=100  " Set by defaults.vim
-noremap <Leader>tt :call termopen('fish')<CR>
+noremap <Leader>tt :call termopen('zsh')<CR>
 noremap <Leader>ts :term<CR>
 noremap <Leader>tv :vertical term<CR>
 " }}}
