@@ -139,6 +139,16 @@ fun! FormatEmailWrite()
 	endwhile
 endfun
 
+fun! Reply80()
+	" Switch to a nice email style for like-minded people
+	augroup EmailFormatting
+		autocmd!
+	augroup END
+	" Remove double replies
+	%s/\v%(^\>\s*\n)?%(^%(\> *){2,}.*\n)+(^\>\s*\n)?/\r/
+endfun
+command Reply80 call Reply80()
+
 augroup EmailFormatting
 	autocmd! BufWritePre *.eml            call FormatEmailWrite()
 	autocmd! BufReadPost *.eml            call FormatEmailRead()

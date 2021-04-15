@@ -13,7 +13,7 @@ Plugin 'skywind3000/asyncrun.vim'
 Plugin 'scrooloose/nerdcommenter'
 Plugin 'vim-airline/vim-airline'
 Plugin 'puremourning/vimspector'
-Plugin 'metakirby5/codi.vim'
+Plugin 'junegunn/vim-emoji'
 
 " Neovim stuff
 Plugin 'neovim/nvim-lspconfig'
@@ -157,6 +157,7 @@ fun! Make()
 endfun
 " }}}
 " Project Specific {{{
+" Config {{{
 fun! ConfigGitHelper(arg)
 	if substitute(getcwd(), '.*/', '', '') == '.config'
 		if filereadable("gith.sh")
@@ -180,6 +181,61 @@ fun! ConfigInstaller(arg)
 	endif
 endfun
 " }}}
+" Website {{{
+fun! BlogInit(title)
+	let name = join(split(system("echo -n '".
+					\ tolower(a:title)
+					\."' | tr -d '[:punct:]'")
+				\, ' '), '-')
+	let fname = 'blog/'.name.'.md'
+
+	cd ~/projects/tim.clifford.lol
+	execute 'term firefox localhost:3000/blog/'.name.' & npm run dev'
+
+	if ! filereadable(fname)
+		" This is a bit awkward unfortunately
+		execute 'edit ' . fname
+		let header = [
+					\ '---',
+					\ 'title: "'.a:title.'"',
+					\ 'excerpt: ""',
+					\ 'createdAt: "'.system("date +'%Y-%m-%d' | tr -d '\n'").'"',
+					\ 'updatedAt: "'.system("date +'%Y-%m-%d' | tr -d '\n'").'"',
+					\ 'author:',
+					\ '  name: Tim Clifford',
+					\ '  avatar: "https://github.com/tim-clifford.png?size=48"',
+					\ 'ogImage: ""',
+					\ 'color: ""',
+					\ '---',
+					\ '',
+				\]
+
+		call append(0, header)
+		call append('$', "<!-- vi: set sts=2 sw=2 et :-->")
+		norm! Gkk
+	else
+		execute 'edit ' . fname
+	endif
+endfun
+fun! BlogPublish() abort
+	" sanity checks
+	if match(expand("%:p"), "tim\.clifford\.lol/blog/.*\.md") == -1
+		echom "Not a valid path"
+		return 1
+	endif
+	!npm run all
+	execute '!'.substitute(expand('%:p'), 'blog\/[^/]*\.md$',
+				\ 'scripts\/sendmail.sh ', '') . expand('%')
+endfun
+fun! SitePublishAndCommit()
+	AsyncRun npm run all
+	Gstatus
+endfun
+command! -nargs=+ Blog :call BlogInit(<q-args>)
+command! BlogPublish :call BlogPublish()
+command! WebPublish :call SitePublishAndCommit()
+" }}}
+" }}}
 " Plugin Config {{{
 " Vimtex {{{
 fun! VimtexCallback()
@@ -202,6 +258,7 @@ let g:pandoc_defaults_file   = '~/.config/pandoc/pandoc.yaml'
 let g:pandoc_header_dir      = '~/.config/pandoc/headers'
 let g:pandoc_highlight_file  = '~/.config/pandoc/dracula.theme'
 let g:pandoc_options         = '-V geometry:margin=1in '
+let g:venus_ignorelist       = ['README.md', 'tim.clifford.lol/blog']
 " }}}
 " Airline {{{
 let g:airline#extensions#whitespace#mixed_indent_algo = 2
@@ -221,6 +278,8 @@ let g:codi#interpreters = {
 " Lspconfig {{{
 lua require('lspconfig').jedi_language_server.setup{}
 lua require('lspconfig').bashls.setup{}
+lua require('lspconfig').tsserver.setup{}
+lua require('lspconfig').vimls.setup{}
 " }}}
 " Completion {{{
 autocmd BufEnter * lua require('completion').on_attach()
@@ -231,57 +290,6 @@ inoremap <expr> <S-Tab> pumvisible() ? "\<C-p>" : "\<S-Tab>"
 let g:completion_enable_snippet = 'UltiSnips'
 " }}}
 " Telescope {{{
-lua << EOF
-require('telescope').setup{
-  defaults = {
-    vimgrep_arguments = {
-      'rg',
-      '--color=never',
-      '--no-heading',
-      '--with-filename',
-      '--line-number',
-      '--column',
-      '--smart-case'
-    },
-    prompt_position = "bottom",
-    prompt_prefix = "> ",
-    selection_caret = "> ",
-    entry_prefix = "  ",
-    initial_mode = "insert",
-    selection_strategy = "reset",
-    sorting_strategy = "descending",
-    layout_strategy = "horizontal",
-    layout_defaults = {
-      horizontal = {
-        mirror = false,
-      },
-      vertical = {
-        mirror = false,
-      },
-    },
-    file_sorter =  require'telescope.sorters'.get_fuzzy_file,
-    file_ignore_patterns = {},
-    generic_sorter =  require'telescope.sorters'.get_generic_fuzzy_sorter,
-    shorten_path = true,
-    winblend = 0,
-    width = 0.75,
-    preview_cutoff = 120,
-    results_height = 1,
-    results_width = 0.8,
-    border = {},
-    borderchars = { '─', '│', '─', '│', '╭', '╮', '╯', '╰' },
-    color_devicons = true,
-    use_less = true,
-    set_env = { ['COLORTERM'] = 'truecolor' }, -- default = nil,
-    file_previewer = require'telescope.previewers'.vim_buffer_cat.new,
-    grep_previewer = require'telescope.previewers'.vim_buffer_vimgrep.new,
-    qflist_previewer = require'telescope.previewers'.vim_buffer_qflist.new,
-
-    -- Developer configurations: Not meant for general override
-    buffer_previewer_maker = require'telescope.previewers'.buffer_previewer_maker
-  }
-}
-EOF
 lua require('telescope').load_extension('octo')
 " }}}
 " }}}
@@ -356,7 +364,57 @@ noremap <Leader>tt :call termopen('zsh')<CR>
 noremap <Leader>ts :term<CR>
 noremap <Leader>tv :vertical term<CR>
 " }}}
+" Location/Quickfix List {{{
+nnoremap <leader>l :call ToggleList(0)<CR>
+nnoremap <leader>q :call ToggleList(1)<CR>
+
+" Thanks prime
+let g:qfix_open = 0
+let g:loclist_open = 0
+fun! ToggleList(global)
+    if a:global
+        if g:qfix_open == 1
+            let g:qfix_open = 0
+            cclose
+        else
+            let g:qfix_open = 1
+            copen
+        end
+    else
+        if g:loclist_open == 1
+            let g:loclist_open = 0
+            lclose
+        else
+            let g:loclist_open = 1
+            lopen
+        end
+    endif
+endfun
+
+" }}}
+" LSP {{{
+" The original g commands are whack, seriously
+nnoremap gd :lua vim.lsp.buf.definition()<CR>
+nnoremap gi :lua vim.lsp.buf.implementation()<CR>
+nnoremap gs :lua vim.lsp.buf.signature_help()<CR>
+nnoremap gr :lua vim.lsp.buf.rename()<CR>
+nnoremap gl :call LSP_open_loclist()<CR>
+nnoremap gn :lua vim.lsp.diagnostic.goto_next()<CR>
+
+fun! LSP_open_loclist()
+	lua vim.lsp.diagnostic.set_loclist()
+	let g:loclist_open = 1
+endfun
+
+" }}}
 " Plugin Keymaps {{{
+" Emoji {{{
+set completefunc=emoji#complete
+" Replace emoji with utf-8
+nnoremap <leader>e :%s/:\([^ :]\+\):/\=emoji#for(submatch(1), submatch(0))/g<CR>
+" Start emoji completion automatically
+inoremap : :<C-X><C-U>
+" }}}
 " Ultisnips {{{
 let g:UltiSnipsExpandTrigger="<c-e>"
 let g:UltiSnipsJumpForwardTrigger="<c-b>"
@@ -377,10 +435,11 @@ nmap <leader>di <Plug>VimspectorStepOut
 nmap <leader>dc <Plug>VimspectorRunToCursor
 nmap <leader>dq :VimspectorReset<CR>
 " }}}
-" fzf {{{
-nnoremap <leader>f :GFiles<CR>
-nnoremap <leader>F :Files<CR>
-nnoremap <leader>b :Buffers<CR>
+" Telescope {{{
+nnoremap <leader>f  <cmd>Telescope git_files<CR>
+nnoremap <leader>F  <cmd>Telescope find_files<CR>
+nnoremap <leader>b  <cmd>Telescope buffers<CR>
+nnoremap <leader>ps <cmd>Telescope grep_string<CR>
 " }}}
 " Fugitive {{{
 augroup Fugitive
@@ -425,9 +484,6 @@ let g:xremap = {
 \	'n': 'j',
 \	'N': 'J',
 \}
-" }}}
-" Telescope {{{
-nnoremap <leader>ps :lua require('telescope.builtin').grep_string({ search = vim.fn.input("Grep For > ")})<CR>
 " }}}
 " }}}
 " }}}
