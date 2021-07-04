@@ -33,27 +33,26 @@ Plugin 'tpope/vim-fugitive'
 Plugin 'sirver/ultisnips'
 Plugin 'honza/vim-snippets'
 
-" Navigation
-Plugin 'junegunn/fzf'
-Plugin 'junegunn/fzf.vim'
-
 " Functionality
 Plugin 'lervag/vimtex'
 Plugin 'tim-clifford/jupytext.vim'
 Plugin 'tim-clifford/vim-venus'
 Plugin 'tim-clifford/vim-qalc'
 Plugin 'tim-clifford/vim-dirdiff'
+Plugin 'dhruvasagar/vim-table-mode'
+Plugin 'thinca/vim-ref'
 
+" Syntax
+Plugin 'chikamichi/mediawiki.vim'
 Plugin 'vim-pandoc/vim-pandoc-syntax'
 Plugin 'dag/vim-fish'
 Plugin 'ap/vim-css-color'
 Plugin 'octol/vim-cpp-enhanced-highlight'
 Plugin 'powerman/vim-plugin-AnsiEsc'
+Plugin 'tkztmk/vim-vala'
 
 " External
-Plugin 'raghur/vim-ghost', { 'do': ':GhostInstall' }
 Plugin 'glacambre/firenvim'
-
 
 call vundle#end()
 filetype plugin indent on
@@ -117,6 +116,19 @@ fun! Help(args)
 	let argsl = split(a:args, ' ')
 	execute 'AsyncRun -mode=terminal curl cht.sh/'.argsl[0].'/'.join(argsl, '+')
 endfun
+" }}}
+" Modeline {{{
+" https://vim.fandom.com/wiki/Modeline_magic
+" Append modeline after last line in buffer.
+" Use substitute() instead of printf() to handle '%%s' modeline in LaTeX
+" files.
+function! AppendModeline()
+  let l:modeline = printf(" vim: set ts=%d sw=%d tw=%d %set :",
+        \ &tabstop, &shiftwidth, &textwidth, &expandtab ? '' : 'no')
+  let l:modeline = substitute(&commentstring, "%s", l:modeline, "")
+  call append(line("$"), l:modeline)
+endfunction
+command AppendModeline call AppendModeline()
 " }}}
 " Make {{{
 let g:asyncrun_open=10
@@ -227,13 +239,19 @@ fun! BlogPublish() abort
 	execute '!'.substitute(expand('%:p'), 'blog\/[^/]*\.md$',
 				\ 'scripts\/sendmail.sh ', '') . expand('%')
 endfun
-fun! SitePublishAndCommit()
+fun! WebInit()
+	cd ~/projects/tim.clifford.lol
+	term firefox localhost:3000 & npm run dev
+	edit pages/index.js
+endfun
+fun! WebPublishAndCommit()
 	AsyncRun npm run all
 	Gstatus
 endfun
 command! -nargs=+ Blog :call BlogInit(<q-args>)
 command! BlogPublish :call BlogPublish()
-command! WebPublish :call SitePublishAndCommit()
+command! Web :call WebInit()
+command! WebPublish :call WebPublishAndCommit()
 " }}}
 " }}}
 " Plugin Config {{{
@@ -280,6 +298,7 @@ lua require('lspconfig').jedi_language_server.setup{}
 lua require('lspconfig').bashls.setup{}
 lua require('lspconfig').tsserver.setup{}
 lua require('lspconfig').vimls.setup{}
+lua require('lspconfig').clangd.setup{}
 " }}}
 " Completion {{{
 autocmd BufEnter * lua require('completion').on_attach()
