@@ -1,63 +1,64 @@
 " Plugins {{{
-set nocompatible
-filetype off
-set rtp+=~/.config/nvim/bundle/Vundle.vim
-call vundle#begin('~/.config/nvim/bundle')
+call plug#begin('~/.config/nvim/plugged')
 
 " let Vundle manage Vundle, required
-Plugin 'VundleVim/Vundle.vim'
+Plug 'VundleVim/Vundle.vim'
 
 " General stuff
-Plugin 'dracula/vim', { 'name': 'dracula' }
-Plugin 'skywind3000/asyncrun.vim'
-Plugin 'scrooloose/nerdcommenter'
-Plugin 'vim-airline/vim-airline'
-Plugin 'puremourning/vimspector'
-Plugin 'junegunn/vim-emoji'
+Plug 'dracula/vim', { 'name': 'dracula' }
+Plug 'skywind3000/asyncrun.vim'
+Plug 'scrooloose/nerdcommenter'
+Plug 'vim-airline/vim-airline'
+Plug 'puremourning/vimspector'
+Plug 'junegunn/vim-emoji'
 
 " Neovim stuff
-Plugin 'neovim/nvim-lspconfig'
-Plugin 'nvim-lua/completion-nvim'
-Plugin 'tjdevries/nlua.nvim'
-Plugin 'tjdevries/lsp_extensions.nvim'
-Plugin 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}
-Plugin 'nvim-lua/popup.nvim'
-Plugin 'nvim-lua/plenary.nvim'
-Plugin 'nvim-telescope/telescope.nvim'
-Plugin 'pwntester/octo.nvim'
+Plug 'neovim/nvim-lspconfig'
+Plug 'nvim-lua/completion-nvim'
+Plug 'tjdevries/nlua.nvim'
+Plug 'tjdevries/lsp_extensions.nvim'
+Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}
+Plug 'nvim-lua/popup.nvim'
+Plug 'nvim-lua/plenary.nvim'
+Plug 'nvim-telescope/telescope.nvim'
+Plug 'pwntester/octo.nvim'
+Plug 'kyazdani42/nvim-web-devicons'
 
 " Git
-Plugin 'tpope/vim-fugitive'
+Plug 'tpope/vim-fugitive'
 
 " Snippets
-Plugin 'sirver/ultisnips'
-Plugin 'honza/vim-snippets'
+Plug 'sirver/ultisnips'
+Plug 'honza/vim-snippets'
 
 " Functionality
-Plugin 'lervag/vimtex'
-Plugin 'tim-clifford/jupytext.vim'
-Plugin 'tim-clifford/vim-venus'
-Plugin 'tim-clifford/vim-qalc'
-Plugin 'tim-clifford/vim-dirdiff'
-Plugin 'dhruvasagar/vim-table-mode'
-Plugin 'thinca/vim-ref'
+Plug 'lervag/vimtex'
+Plug 'tim-clifford/vim-venus'
+Plug 'tim-clifford/vim-qalc'
+Plug 'tim-clifford/vim-dirdiff'
+Plug 'dhruvasagar/vim-table-mode'
+Plug 'thinca/vim-ref'
 
 " Syntax
-Plugin 'chikamichi/mediawiki.vim'
-Plugin 'vim-pandoc/vim-pandoc-syntax'
-Plugin 'dag/vim-fish'
-Plugin 'ap/vim-css-color'
-Plugin 'octol/vim-cpp-enhanced-highlight'
-Plugin 'powerman/vim-plugin-AnsiEsc'
-Plugin 'tkztmk/vim-vala'
+Plug 'chikamichi/mediawiki.vim'
+Plug 'vim-pandoc/vim-pandoc-syntax'
+Plug 'dag/vim-fish'
+Plug 'ap/vim-css-color'
+Plug 'octol/vim-cpp-enhanced-highlight'
+Plug 'powerman/vim-plugin-AnsiEsc'
+Plug 'tkztmk/vim-vala'
 
 " External
-Plugin 'glacambre/firenvim'
+Plug 'glacambre/firenvim'
 
-call vundle#end()
-filetype plugin indent on
+call plug#end()
 " }}}
 " General {{{
+
+" Enable local configs
+set exrc
+set secure " disallow :autocmd, shell, and write commands in local config
+
 " Colors
 syntax         enable
 colorscheme    dracula
@@ -114,7 +115,7 @@ command! Cd cd %:p:h
 command! -nargs=+ Help :call Help(<q-args>)
 fun! Help(args)
 	let argsl = split(a:args, ' ')
-	execute 'AsyncRun -mode=terminal curl cht.sh/'.argsl[0].'/'.join(argsl, '+')
+	execute 'AsyncRun -mode=terminal curl cht.sh/'.argsl[0].'/'.join(argsl[1:], '+')
 endfun
 " }}}
 " Modeline {{{
@@ -131,7 +132,7 @@ endfunction
 command AppendModeline call AppendModeline()
 " }}}
 " Make {{{
-let g:asyncrun_open=10
+let g:asyncrun_open=5
 autocmd! BufWritePost $MYVIMRC nested source %
 execute 'autocmd! BufWritePost '.$HOME.'/.vim/git/.vimrc-nvim nested source %'
 fun! MakeAndRun()
@@ -143,11 +144,11 @@ fun! MakeAndRun()
 		:AsyncRun ./start.sh
 	elseif &filetype == 'python'
 		:AsyncStop
-		execute ':AsyncRun python3 '.expand('%:t')
+		execute ':AsyncRun python3 '.expand('%')
 	elseif &filetype == 'sh'
 		:AsyncStop
-		execute ':AsyncRun ./'.expand('%:t')
-	elseif &filetype == 'markdown'
+		execute ':AsyncRun ./'.expand('%')
+	elseif &filetype == 'venus'
 		:AsyncStop
 		call venus#Make()
 	else
@@ -246,7 +247,7 @@ fun! WebInit()
 endfun
 fun! WebPublishAndCommit()
 	AsyncRun npm run all
-	Gstatus
+	Git
 endfun
 command! -nargs=+ Blog :call BlogInit(<q-args>)
 command! BlogPublish :call BlogPublish()
@@ -275,11 +276,13 @@ let g:vimtex_view_automatic = 0
 let g:pandoc_defaults_file   = '~/.config/pandoc/pandoc.yaml'
 let g:pandoc_header_dir      = '~/.config/pandoc/headers'
 let g:pandoc_highlight_file  = '~/.config/pandoc/dracula.theme'
-let g:pandoc_options         = '-V geometry:margin=1in '
+let g:pandoc_options         = '--citeproc'
+let g:venus_pandoc_callback  = "venus#OpenZathura"
 let g:venus_ignorelist       = ['README.md', 'tim.clifford.lol/blog']
 " }}}
 " Airline {{{
 let g:airline#extensions#whitespace#mixed_indent_algo = 2
+let g:airline#extensions#wordcount#filetypes = '\vasciidoc|help|mail|markdown|markdown.pandoc|org|rst|tex|text|venus'
 " }}}
 " Codi {{{
 fun! s:qalc_preproc(line)
@@ -294,11 +297,13 @@ let g:codi#interpreters = {
 	\ }
 " }}}
 " Lspconfig {{{
-lua require('lspconfig').jedi_language_server.setup{}
+lua require('lspconfig').pyright.setup{}
 lua require('lspconfig').bashls.setup{}
 lua require('lspconfig').tsserver.setup{}
 lua require('lspconfig').vimls.setup{}
 lua require('lspconfig').clangd.setup{}
+lua require('lspconfig').csharp_ls.setup{}
+lua require('lspconfig').ltex.setup{}
 " }}}
 " Completion {{{
 autocmd BufEnter * lua require('completion').on_attach()
@@ -316,9 +321,11 @@ lua require('telescope').load_extension('octo')
 " General {{{
 let mapleader = " "
 let maplocalleader = " "
-nnoremap <leader>v<leader> :edit ~/.config/nvim/init.vim<CR>
+nnoremap <silent> <leader>v<leader> :edit ~/.config/nvim/init.vim<CR>
 " Why is this not default, I don't get it
 noremap Y y$
+noremap <silent> <leader>j :next<CR>
+noremap <silent> <leader>J :prev<CR>
 
 noremap n h
 noremap N H
@@ -472,7 +479,7 @@ augroup Fugitive
 	autocmd FileType fugitive
 				\ nnoremap <buffer> tu :call ConfigInstaller("update")<CR>
 augroup END
-noremap <leader>g :Gstatus<CR>
+noremap <leader>g :Git<CR>
 let g:nremap = {
 \	'o': 'k',
 \	'O': 'K',
