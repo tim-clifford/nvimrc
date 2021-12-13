@@ -39,6 +39,10 @@ Plug 'tim-clifford/vim-dirdiff'
 Plug 'dhruvasagar/vim-table-mode'
 Plug 'thinca/vim-ref'
 
+Plug 'mattn/webapi-vim'
+Plug 'kana/vim-metarw'
+Plug 'tim-clifford/vim-metarw-gdrive'
+
 " Syntax
 Plug 'chikamichi/mediawiki.vim'
 Plug 'vim-pandoc/vim-pandoc-syntax'
@@ -49,7 +53,7 @@ Plug 'powerman/vim-plugin-AnsiEsc'
 Plug 'tkztmk/vim-vala'
 
 " External
-Plug 'glacambre/firenvim'
+Plug 'glacambre/firenvim', { 'do': { _ -> firenvim#install(0) } }
 
 call plug#end()
 " }}}
@@ -73,6 +77,7 @@ augroup formatting
 	autocmd!
 	autocmd BufWritePre * call TrimWhitespace()
 augroup END
+let g:python_recommended_style = 0 " Fuck PEP who tf made this default
 
 " Visual
 set incsearch nohlsearch
@@ -277,7 +282,7 @@ let g:pandoc_defaults_file   = '~/.config/pandoc/pandoc.yaml'
 let g:pandoc_header_dir      = '~/.config/pandoc/headers'
 let g:pandoc_highlight_file  = '~/.config/pandoc/dracula.theme'
 let g:pandoc_options         = '--citeproc'
-let g:venus_pandoc_callback  = "venus#OpenZathura"
+let g:venus_pandoc_callback  = ['venus#OpenZathura']
 let g:venus_ignorelist       = ['README.md', 'tim.clifford.lol/blog']
 " }}}
 " Airline {{{
@@ -303,7 +308,8 @@ lua require('lspconfig').tsserver.setup{}
 lua require('lspconfig').vimls.setup{}
 lua require('lspconfig').clangd.setup{}
 lua require('lspconfig').csharp_ls.setup{}
-lua require('lspconfig').ltex.setup{}
+lua require('lspconfig').hls.setup{}
+"lua require('lspconfig').ltex.setup{}
 " }}}
 " Completion {{{
 autocmd BufEnter * lua require('completion').on_attach()
@@ -315,6 +321,11 @@ let g:completion_enable_snippet = 'UltiSnips'
 " }}}
 " Telescope {{{
 lua require('telescope').load_extension('octo')
+" }}}
+" Ref {{{
+command! -nargs=+ Rpy :Ref pydoc <args>
+command! -nargs=+ Rnp :Ref pydoc numpy.<args>
+command! -nargs=+ Rplt :Ref pydoc matplotlib.pyplot.<args>
 " }}}
 " }}}
 " Keyboard Mappings {{{
@@ -426,6 +437,7 @@ nnoremap gs :lua vim.lsp.buf.signature_help()<CR>
 nnoremap gr :lua vim.lsp.buf.rename()<CR>
 nnoremap gl :call LSP_open_loclist()<CR>
 nnoremap gn :lua vim.lsp.diagnostic.goto_next()<CR>
+nnoremap gj :lua vim.lsp.buf.references()<CR>
 
 fun! LSP_open_loclist()
 	lua vim.lsp.diagnostic.set_loclist()

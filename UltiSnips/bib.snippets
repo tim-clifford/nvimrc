@@ -1,0 +1,14 @@
+priority 1
+
+snippet online "Online resource" b
+@online{${1:name},
+	author={${2:author}},
+	title={${3:title}},
+	date={${4:date}},
+	url={${5:url}},
+	urldate={${5:`date +%Y-%m-%d`}}
+}
+$0
+endsnippet
+
+# vim:ft=snippets:
