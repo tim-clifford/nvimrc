@@ -1,9 +1,7 @@
-if ! [ -d $HOME/.config/nvim/bundle/Vundle.vim ]; then
-	mkdir -p $HOME/.config/nvim/bundle
-	git clone --depth 1 \
-		https://github.com/VundleVim/Vundle.vim.git \
-		$HOME/.config/nvim/bundle/Vundle.vim
-	nvim +PluginInstall +qall
+if ! [ -f autoload/plug.vim ]; then
+	curl -fLo autoload/plug.vim --create-dirs \
+    https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+	nvim +PlugInstall +PlugUpdate +qall
 fi
 
 
