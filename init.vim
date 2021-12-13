@@ -38,6 +38,7 @@ Plug 'tim-clifford/vim-qalc'
 Plug 'tim-clifford/vim-dirdiff'
 Plug 'dhruvasagar/vim-table-mode'
 Plug 'thinca/vim-ref'
+Plug 'dbeniamine/vim-mail'
 
 Plug 'mattn/webapi-vim'
 Plug 'kana/vim-metarw'
@@ -327,6 +328,29 @@ command! -nargs=+ Rpy :Ref pydoc <args>
 command! -nargs=+ Rnp :Ref pydoc numpy.<args>
 command! -nargs=+ Rplt :Ref pydoc matplotlib.pyplot.<args>
 " }}}
+" Mail {{{
+let g:VimMailContactsProvider=['khard']
+let g:VimMailSpellLangs=['en']
+let g:VimMailDoNotMap=1
+
+fun! s:mailCompleteMaybe()
+
+	" Check we are in a valid line
+	if match(getline("."), 'To:\|Cc:\|Bcc:') == 0
+		let cursorpos = getpos(".")
+		call cursor(0, cursorpos[2] - 1)
+		if strlen(expand('<cword>')) > 1
+			call feedkeys("\<C-x>\<C-o>", "n")
+		endif
+		call cursor(0, cursorpos[2])
+	endif
+endfun
+
+augroup MailCompletion
+	autocmd!
+	autocmd FileType mail autocmd InsertCharPre * :call s:mailCompleteMaybe()
+augroup END
+" }}}
 " }}}
 " Keyboard Mappings {{{
 " General {{{
@@ -522,6 +546,9 @@ let g:xremap = {
 \	'n': 'j',
 \	'N': 'J',
 \}
+" }}}
+" Mail {{{
+nnoremap <LocalLeader>a :call vimmail#spelllang#SwitchSpellLangs()<CR>
 " }}}
 " }}}
 " }}}
