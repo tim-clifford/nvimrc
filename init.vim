@@ -16,7 +16,7 @@ Plug 'junegunn/vim-emoji'
 Plug 'neovim/nvim-lspconfig'
 Plug 'nvim-lua/completion-nvim'
 Plug 'tjdevries/nlua.nvim'
-Plug 'tjdevries/lsp_extensions.nvim'
+"Plug 'nvim-lua/lsp_extensions.nvim' " Some problems with get_count
 Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}
 Plug 'nvim-lua/popup.nvim'
 Plug 'nvim-lua/plenary.nvim'
@@ -39,6 +39,7 @@ Plug 'tim-clifford/vim-dirdiff'
 Plug 'dhruvasagar/vim-table-mode'
 Plug 'thinca/vim-ref'
 Plug 'dbeniamine/vim-mail'
+Plug 'ellisonleao/glow.nvim'
 
 Plug 'mattn/webapi-vim'
 Plug 'kana/vim-metarw'
@@ -338,18 +339,21 @@ fun! s:mailCompleteMaybe()
 	" Check we are in a valid line
 	if match(getline("."), 'To:\|Cc:\|Bcc:') == 0
 		let cursorpos = getpos(".")
-		call cursor(0, cursorpos[2] - 1)
+		call cursor(0, cursorpos[2] - 1) " move cursorpos back 1 (onto word)
 		if strlen(expand('<cword>')) > 1
-			call feedkeys("\<C-x>\<C-o>", "n")
+			return "\<C-x>\<C-o>"
 		endif
-		call cursor(0, cursorpos[2])
 	endif
 endfun
 
 augroup MailCompletion
 	autocmd!
-	autocmd FileType mail autocmd InsertCharPre * :call s:mailCompleteMaybe()
+	autocmd FileType mail inoremap <expr> <Tab> <SID>mailCompleteMaybe()
 augroup END
+" }}}
+" Glow {{{
+let g:glow_border="rounded"
+let g:glow_width=80
 " }}}
 " }}}
 " Keyboard Mappings {{{
