@@ -14,18 +14,28 @@ Plug 'junegunn/vim-emoji'
 
 " Neovim stuff
 Plug 'neovim/nvim-lspconfig'
-Plug 'nvim-lua/completion-nvim'
 Plug 'tjdevries/nlua.nvim'
 "Plug 'nvim-lua/lsp_extensions.nvim' " Some problems with get_count
 Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}
 Plug 'nvim-lua/popup.nvim'
 Plug 'nvim-lua/plenary.nvim'
 Plug 'nvim-telescope/telescope.nvim'
-Plug 'pwntester/octo.nvim'
-Plug 'kyazdani42/nvim-web-devicons'
+
+" Completion
+Plug 'neovim/nvim-lspconfig'
+Plug 'hrsh7th/cmp-nvim-lsp'
+Plug 'hrsh7th/cmp-buffer'
+Plug 'hrsh7th/cmp-path'
+Plug 'hrsh7th/cmp-cmdline'
+Plug 'hrsh7th/nvim-cmp'
+Plug 'quangnguyen30192/cmp-nvim-ultisnips'
 
 " Git
 Plug 'tpope/vim-fugitive'
+
+" GitHub
+Plug 'pwntester/octo.nvim'
+Plug 'kyazdani42/nvim-web-devicons'
 
 " Snippets
 Plug 'sirver/ultisnips'
@@ -40,6 +50,7 @@ Plug 'dhruvasagar/vim-table-mode'
 Plug 'thinca/vim-ref'
 Plug 'dbeniamine/vim-mail'
 Plug 'ellisonleao/glow.nvim'
+Plug 'ThePrimeagen/harpoon'
 
 Plug 'mattn/webapi-vim'
 Plug 'kana/vim-metarw'
@@ -88,9 +99,7 @@ set noshowmode
 set nowrap
 set number
 set guicursor=
-
-" Set completeopt to have a better completion experience
-set completeopt=menuone,noinsert,noselect
+set list
 
 fun! SetRelativenumber()
 	" Help files don't get numbering so without this check we'll get an
@@ -202,15 +211,15 @@ fun! ConfigInstaller(arg)
 endfun
 " }}}
 " Website {{{
-fun! BlogInit(title)
+fun! BlogInit(title) abort
 	let name = join(split(system("echo -n '".
-					\ tolower(a:title)
+					\ substitute(tolower(a:title), "'", "", "g")
 					\."' | tr -d '[:punct:]'")
 				\, ' '), '-')
 	let fname = 'blog/'.name.'.md'
 
-	cd ~/projects/tim.clifford.lol
-	execute 'term firefox localhost:3000/blog/'.name.' & npm run dev'
+	cd ~/projects/https-tim.clifford.lol
+	exec "lua require('harpoon.term').sendCommand(1, 'firefox localhost:3000/blog/".name." & npm run dev\\n')"
 
 	if ! filereadable(fname)
 		" This is a bit awkward unfortunately
@@ -237,19 +246,43 @@ fun! BlogInit(title)
 		execute 'edit ' . fname
 	endif
 endfun
+fun! BlogGeminiInit() abort
+	" sanity checks
+	if match(expand("%:p"), "tim\.clifford\.lol/blog/.*\.md") == -1
+		echom "Not a valid path"
+		return 1
+	endif
+	execute "!md2gemini -w -l at-end " . expand("%")
+	let gmipath = substitute(expand("%:p"), "/[^/]*\zs\.md$", ".gmi", "")
+	execute ":e " . gmipath
+endfun
 fun! BlogPublish() abort
 	" sanity checks
 	if match(expand("%:p"), "tim\.clifford\.lol/blog/.*\.md") == -1
 		echom "Not a valid path"
 		return 1
 	endif
+	let gmipath = substitute(expand("%:p"), "/[^/]*\zs\.md$", ".gmi", "")
+	if ! filereadable(gmipath)
+		echom "No gemini version exists"
+	endif
+	execute "!scp " . gmipath . " pip:bliz/serve/blog"
 	!npm run all
 	execute '!'.substitute(expand('%:p'), 'blog\/[^/]*\.md$',
 				\ 'scripts\/sendmail.sh ', '') . expand('%')
 endfun
+fun! BlogEmailTest() abort
+	" sanity checks
+	if match(expand("%:p"), "tim\.clifford\.lol/blog/.*\.md") == -1
+		echom "Not a valid path"
+		return 1
+	endif
+	execute '!'.substitute(expand('%:p'), 'blog\/[^/]*\.md$',
+				\ 'scripts\/sendmail.sh ', '') . expand('%') . ' --test'
+endfun
 fun! WebInit()
-	cd ~/projects/tim.clifford.lol
-	term firefox localhost:3000 & npm run dev
+	cd ~/projects/https-tim.clifford.lol
+	lua require('harpoon.term').sendCommand(1, 'firefox localhost:3000 & npm run dev\n')
 	edit pages/index.js
 endfun
 fun! WebPublishAndCommit()
@@ -257,6 +290,8 @@ fun! WebPublishAndCommit()
 	Git
 endfun
 command! -nargs=+ Blog :call BlogInit(<q-args>)
+command! BlogGemini :call BlogGeminiInit()
+command! BlogEmailTest :call BlogEmailTest()
 command! BlogPublish :call BlogPublish()
 command! Web :call WebInit()
 command! WebPublish :call WebPublishAndCommit()
@@ -285,7 +320,7 @@ let g:pandoc_header_dir      = '~/.config/pandoc/headers'
 let g:pandoc_highlight_file  = '~/.config/pandoc/dracula.theme'
 let g:pandoc_options         = '--citeproc'
 let g:venus_pandoc_callback  = ['venus#OpenZathura']
-let g:venus_ignorelist       = ['README.md', 'tim.clifford.lol/blog']
+let g:venus_ignorelist       = ['README.md', 'https-tim.clifford.lol/blog']
 " }}}
 " Airline {{{
 let g:airline#extensions#whitespace#mixed_indent_algo = 2
@@ -303,23 +338,78 @@ let g:codi#interpreters = {
 		\ },
 	\ }
 " }}}
-" Lspconfig {{{
-lua require('lspconfig').pyright.setup{}
-lua require('lspconfig').bashls.setup{}
-lua require('lspconfig').tsserver.setup{}
-lua require('lspconfig').vimls.setup{}
-lua require('lspconfig').clangd.setup{}
-lua require('lspconfig').csharp_ls.setup{}
-lua require('lspconfig').hls.setup{}
-"lua require('lspconfig').ltex.setup{}
-" }}}
 " Completion {{{
-autocmd BufEnter * lua require('completion').on_attach()
-" Use <Tab> and <S-Tab> to navigate through popup menu
-inoremap <expr> <Tab>   pumvisible() ? "\<C-n>" : "\<Tab>"
-inoremap <expr> <S-Tab> pumvisible() ? "\<C-p>" : "\<S-Tab>"
+set completeopt=menu,menuone,noselect
 
-let g:completion_enable_snippet = 'UltiSnips'
+lua <<EOF
+  -- Setup nvim-cmp.
+  local cmp = require'cmp'
+
+  cmp.setup({
+    snippet = {
+      -- REQUIRED - you must specify a snippet engine
+      expand = function(args)
+        -- vim.fn["vsnip#anonymous"](args.body) -- For `vsnip` users.
+        -- require('luasnip').lsp_expand(args.body) -- For `luasnip` users.
+        -- require('snippy').expand_snippet(args.body) -- For `snippy` users.
+        vim.fn["UltiSnips#Anon"](args.body) -- For `ultisnips` users.
+      end,
+    },
+    mapping = {
+      ['<C-b>'] = cmp.mapping(cmp.mapping.scroll_docs(-4), { 'i', 'c' }),
+      ['<C-f>'] = cmp.mapping(cmp.mapping.scroll_docs(4), { 'i', 'c' }),
+      ['<C-Space>'] = cmp.mapping(cmp.mapping.complete(), { 'i', 'c' }),
+      ['<C-y>'] = cmp.config.disable, -- Specify `cmp.config.disable` if you want to remove the default `<C-y>` mapping.
+      ['<C-n>'] = cmp.mapping({
+        i = cmp.mapping.abort(),
+        c = cmp.mapping.close(),
+      }),
+      ['<C-e>'] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
+    },
+    sources = cmp.config.sources({
+      { name = 'nvim_lsp' },
+      -- { name = 'vsnip' }, -- For vsnip users.
+      -- { name = 'luasnip' }, -- For luasnip users.
+      { name = 'ultisnips' }, -- For ultisnips users.
+      -- { name = 'snippy' }, -- For snippy users.
+    }, {
+      { name = 'buffer' },
+    })
+  })
+
+  -- Use buffer source for `/` (if you enabled `native_menu`, this won't work anymore).
+  cmp.setup.cmdline('/', {
+    sources = {
+      { name = 'buffer' }
+    }
+  })
+
+  -- Use cmdline & path source for ':' (if you enabled `native_menu`, this won't work anymore).
+  cmp.setup.cmdline(':', {
+    sources = cmp.config.sources({
+      { name = 'path' }
+    }, {
+      { name = 'cmdline' }
+    })
+  })
+
+  -- Setup lspconfig.
+  local capabilities = require('cmp_nvim_lsp').update_capabilities(vim.lsp.protocol.make_client_capabilities())
+EOF
+
+" }}}
+" Lspconfig {{{
+lua require('lspconfig').pyright.setup{capabilities = capabilities}
+lua require('lspconfig').bashls.setup{capabilities = capabilities}
+lua require('lspconfig').tsserver.setup{capabilities = capabilities}
+lua require('lspconfig').vimls.setup{capabilities = capabilities}
+lua require('lspconfig').clangd.setup{capabilities = capabilities}
+lua require('lspconfig').csharp_ls.setup{capabilities = capabilities}
+lua require('lspconfig').hls.setup{capabilities = capabilities}
+lua require('lspconfig').ghdl_ls.setup{capabilities = capabilities}
+lua require('lspconfig').sumneko_lua.setup{capabilities = capabilities}
+lua require('lspconfig').phpactor.setup{capabilities = capabilities}
+"lua require('lspconfig').ltex.setup{}
 " }}}
 " Telescope {{{
 lua require('telescope').load_extension('octo')
@@ -367,20 +457,21 @@ noremap <silent> <leader>j :next<CR>
 noremap <silent> <leader>J :prev<CR>
 
 noremap n h
-noremap N H
 noremap e j
-noremap E J
 noremap i k
-noremap I K
 noremap o l
-noremap O L
 noremap k o
-noremap K O
 noremap l e
-noremap L E
 noremap h i
-noremap H I
 noremap j n
+
+noremap N H
+noremap E J
+noremap I K
+noremap O L
+noremap K O
+noremap L E
+noremap H I
 noremap J N
 noremap <leader>k za
 " }}}
@@ -421,13 +512,14 @@ noremap <Leader>mm :wa <bar> call Make() <CR>
 noremap <Leader>mr :wa <bar> call MakeAndRun() <CR>
 " }}}
 " Terminal {{{
-tnoremap <Esc> <C-\><C-n>
-tnoremap <Esc><Esc> <C-\><C-n>
-set timeout timeoutlen=1000  " Default
-set ttimeout ttimeoutlen=100  " Set by defaults.vim
-noremap <Leader>tt :call termopen('zsh')<CR>
-noremap <Leader>ts :term<CR>
-noremap <Leader>tv :vertical term<CR>
+tnoremap <c-w> <C-\><C-n>
+"tnoremap <Esc> <C-\><C-n>
+"tnoremap <Esc><Esc> <C-\><C-n>
+"set timeout timeoutlen=1000  " Default
+"set ttimeout ttimeoutlen=100  " Set by defaults.vim
+"noremap <Leader>tt :call termopen('zsh')<CR>
+"noremap <Leader>ts :term<CR>
+"noremap <Leader>tv :vertical term<CR>
 " }}}
 " Location/Quickfix List {{{
 nnoremap <leader>l :call ToggleList(0)<CR>
@@ -553,6 +645,11 @@ let g:xremap = {
 " }}}
 " Mail {{{
 nnoremap <LocalLeader>a :call vimmail#spelllang#SwitchSpellLangs()<CR>
+" }}}
+" Harpoon {{{
+nnoremap <silent> <leader>m :lua require("harpoon.mark").add_file()<CR>
+nnoremap <silent> <leader>! :lua require("harpoon.term").gotoTerminal(1)<CR>
+nnoremap <silent> <leader>£ :lua require("harpoon.term").gotoTerminal(2)<CR>
 " }}}
 " }}}
 " }}}
