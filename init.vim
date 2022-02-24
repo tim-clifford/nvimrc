@@ -185,6 +185,9 @@ fun! Make()
 	endif
 endfun
 " }}}
+" Network stuff
+command! -nargs=1 Curl :r !curl <q-args> 2>/dev/null
+command! -nargs=1 Gurl :r !gmni gemini://<q-args> -j once
 " Project Specific {{{
 " Config {{{
 fun! ConfigGitHelper(arg)
@@ -319,7 +322,7 @@ let g:pandoc_defaults_file   = '~/.config/pandoc/pandoc.yaml'
 let g:pandoc_header_dir      = '~/.config/pandoc/headers'
 let g:pandoc_highlight_file  = '~/.config/pandoc/dracula.theme'
 let g:pandoc_options         = '--citeproc'
-let g:venus_pandoc_callback  = ['venus#OpenZathura']
+let g:venus_pandoc_callback  = 'venus#OpenZathura'
 let g:venus_ignorelist       = ['README.md', 'https-tim.clifford.lol/blog']
 " }}}
 " Airline {{{
