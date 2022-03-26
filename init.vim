@@ -48,9 +48,11 @@ Plug 'tim-clifford/vim-qalc'
 Plug 'tim-clifford/vim-dirdiff'
 Plug 'dhruvasagar/vim-table-mode'
 Plug 'thinca/vim-ref'
+Plug 'ujihisa/ref-hoogle'
 Plug 'dbeniamine/vim-mail'
 Plug 'ellisonleao/glow.nvim'
 Plug 'ThePrimeagen/harpoon'
+Plug 'adelarsq/vim-matchit'
 
 Plug 'mattn/webapi-vim'
 Plug 'kana/vim-metarw'
@@ -219,10 +221,12 @@ fun! BlogInit(title) abort
 					\ substitute(tolower(a:title), "'", "", "g")
 					\."' | tr -d '[:punct:]'")
 				\, ' '), '-')
-	let fname = 'blog/'.name.'.md'
 
-	cd ~/projects/https-tim.clifford.lol
-	exec "lua require('harpoon.term').sendCommand(1, 'firefox localhost:3000/blog/".name." & npm run dev\\n')"
+	cd ~/projects/tim.clifford.lol
+	silent !mkdir -p 'blog/'.name
+	let fname = 'blog/'.name.'/index.md'
+
+	" exec "lua require('harpoon.term').sendCommand(1, 'firefox localhost:3000/blog/".name." & npm run dev\\n')"
 
 	if ! filereadable(fname)
 		" This is a bit awkward unfortunately
@@ -232,12 +236,6 @@ fun! BlogInit(title) abort
 					\ 'title: "'.a:title.'"',
 					\ 'excerpt: ""',
 					\ 'createdAt: "'.system("date +'%Y-%m-%d' | tr -d '\n'").'"',
-					\ 'updatedAt: "'.system("date +'%Y-%m-%d' | tr -d '\n'").'"',
-					\ 'author:',
-					\ '  name: Tim Clifford',
-					\ '  avatar: "https://github.com/tim-clifford.png?size=48"',
-					\ 'ogImage: ""',
-					\ 'color: ""',
 					\ '---',
 					\ '',
 				\]
@@ -249,51 +247,72 @@ fun! BlogInit(title) abort
 		execute 'edit ' . fname
 	endif
 endfun
-fun! BlogGeminiInit() abort
-	" sanity checks
-	if match(expand("%:p"), "tim\.clifford\.lol/blog/.*\.md") == -1
-		echom "Not a valid path"
-		return 1
-	endif
-	execute "!md2gemini -w -l at-end " . expand("%")
-	let gmipath = substitute(expand("%:p"), "/[^/]*\zs\.md$", ".gmi", "")
-	execute ":e " . gmipath
-endfun
-fun! BlogPublish() abort
-	" sanity checks
-	if match(expand("%:p"), "tim\.clifford\.lol/blog/.*\.md") == -1
-		echom "Not a valid path"
-		return 1
-	endif
-	let gmipath = substitute(expand("%:p"), "/[^/]*\zs\.md$", ".gmi", "")
-	if ! filereadable(gmipath)
-		echom "No gemini version exists"
-	endif
-	execute "!scp " . gmipath . " pip:bliz/serve/blog"
-	!npm run all
-	execute '!'.substitute(expand('%:p'), 'blog\/[^/]*\.md$',
-				\ 'scripts\/sendmail.sh ', '') . expand('%')
-endfun
-fun! BlogEmailTest() abort
-	" sanity checks
-	if match(expand("%:p"), "tim\.clifford\.lol/blog/.*\.md") == -1
-		echom "Not a valid path"
-		return 1
-	endif
-	execute '!'.substitute(expand('%:p'), 'blog\/[^/]*\.md$',
-				\ 'scripts\/sendmail.sh ', '') . expand('%') . ' --test'
-endfun
-fun! WebInit()
-	cd ~/projects/https-tim.clifford.lol
-	lua require('harpoon.term').sendCommand(1, 'firefox localhost:3000 & npm run dev\n')
-	edit pages/index.js
-endfun
-fun! WebPublishAndCommit()
-	AsyncRun npm run all
-	Git
-endfun
+"fun! BlogGeminiInit() abort
+	"" sanity checks
+	"if match(expand("%:p"), "tim\.clifford\.lol/blog/.*\.md") == -1
+		"echom "Start from markdown"
+		"return 1
+	"endif
+	"if filereadable(substitute(expand("%:p"), ".md$", ".bliz", ""))
+		"echom "Will not overwrite file"
+		"return 1
+	"endif
+	":cd blog
+	"execute "!md2gemini -w -l at-end " . expand("%")
+	"let g:blizpath = substitute(expand("%:p"), ".md$", ".bliz", "")
+	"execute ":e " . g:blizpath
+	":cd ..
+"endfun
+"fun! BlogPlainInit() abort
+	"" sanity checks
+	"if match(expand("%:p"), "tim\.clifford\.lol/blog/.*\.bliz") == -1
+		"echom "Start with the gemini version"
+		"return 1
+	"endif
+	"if filereadable(substitute(expand("%:p"), ".bliz$", ".txt", ""))
+		"echom "Will not overwrite file"
+		"return 1
+	"endif
+	"exe ":!cp " . expand("%:p") . " " . substitute(expand("%:p"), ".bliz$", ".txt", "")
+	"exe ":e " . substitute(expand("%:p"), ".bliz$", ".txt", "")
+	":%s/=> \([^ ]*\) \(.*\)/\2: \1/
+"endfun
+"fun! BlogPublish() abort
+	"" sanity checks
+	"if match(expand("%:p"), "tim\.clifford\.lol/blog/.*\.md") == -1
+		"echom "Not a valid path"
+		"return 1
+	"endif
+	"let blizpath = substitute(expand("%:p"), ".md$", ".bliz", "")
+	"if ! filereadable(blizpath)
+		"echom "No gemini version exists"
+	"endif
+	"execute "!scp " . blizpath . " pip:bliz/serve/blog/"
+	"!npm run all
+	""execute '!'.substitute(expand('%:p'), 'blog\/[^/]*\.md$',
+				""\ 'scripts\/sendmail.sh ', '') . expand('%')
+"endfun
+"fun! BlogEmailTest() abort
+	"" sanity checks
+	"if match(expand("%:p"), "tim\.clifford\.lol/blog/.*\.md") == -1
+		"echom "Not a valid path"
+		"return 1
+	"endif
+	"execute '!'.substitute(expand('%:p'), 'blog\/[^/]*\.md$',
+				"\ 'scripts\/sendmail.sh ', '') . expand('%') . ' --test'
+"endfun
+"fun! WebInit()
+	"cd ~/projects/https-tim.clifford.lol
+	"lua require('harpoon.term').sendCommand(1, 'firefox localhost:3000 & npm run dev\n')
+	"edit pages/index.js
+"endfun
+"fun! WebPublishAndCommit()
+	"AsyncRun npm run all
+	"Git
+"endfun
 command! -nargs=+ Blog :call BlogInit(<q-args>)
 command! BlogGemini :call BlogGeminiInit()
+command! BlogPlain :call BlogPlainInit()
 command! BlogEmailTest :call BlogEmailTest()
 command! BlogPublish :call BlogPublish()
 command! Web :call WebInit()
@@ -322,11 +341,11 @@ let g:pandoc_defaults_file   = '~/.config/pandoc/pandoc.yaml'
 let g:pandoc_header_dir      = '~/.config/pandoc/headers'
 let g:pandoc_highlight_file  = '~/.config/pandoc/dracula.theme'
 let g:pandoc_options         = '--citeproc'
-let g:venus_pandoc_callback  = 'venus#OpenZathura'
+let g:venus_pandoc_callback  = ['venus#OpenZathura']
 let g:venus_ignorelist       = ['README.md', 'https-tim.clifford.lol/blog']
 " }}}
 " Airline {{{
-let g:airline#extensions#whitespace#mixed_indent_algo = 2
+let g:airline_extensions = ['quickfix', 'netrw', 'term', 'csv', 'branch', 'fugitiveline', 'nvimlsp', 'po', 'wordcount', 'searchcount']
 let g:airline#extensions#wordcount#filetypes = '\vasciidoc|help|mail|markdown|markdown.pandoc|org|rst|tex|text|venus'
 " }}}
 " Codi {{{
@@ -421,6 +440,7 @@ lua require('telescope').load_extension('octo')
 command! -nargs=+ Rpy :Ref pydoc <args>
 command! -nargs=+ Rnp :Ref pydoc numpy.<args>
 command! -nargs=+ Rplt :Ref pydoc matplotlib.pyplot.<args>
+command! -nargs=+ Rhs :Ref hoogle <args>
 " }}}
 " Mail {{{
 let g:VimMailContactsProvider=['khard']
