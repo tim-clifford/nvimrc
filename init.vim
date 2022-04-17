@@ -187,9 +187,10 @@ fun! Make()
 	endif
 endfun
 " }}}
-" Network stuff
+" Network stuff {{{
 command! -nargs=1 Curl :r !curl <q-args> 2>/dev/null
 command! -nargs=1 Gurl :r !gmni gemini://<q-args> -j once
+" }}}
 " Project Specific {{{
 " Config {{{
 fun! ConfigGitHelper(arg)
@@ -223,7 +224,7 @@ fun! BlogInit(title) abort
 				\, ' '), '-')
 
 	cd ~/projects/tim.clifford.lol
-	silent !mkdir -p 'blog/'.name
+	exe "silent !mkdir -p blog/".name
 	let fname = 'blog/'.name.'/index.md'
 
 	" exec "lua require('harpoon.term').sendCommand(1, 'firefox localhost:3000/blog/".name." & npm run dev\\n')"
@@ -247,22 +248,19 @@ fun! BlogInit(title) abort
 		execute 'edit ' . fname
 	endif
 endfun
-"fun! BlogGeminiInit() abort
+fun! BlogGeminiInit() abort
 	"" sanity checks
-	"if match(expand("%:p"), "tim\.clifford\.lol/blog/.*\.md") == -1
-		"echom "Start from markdown"
-		"return 1
-	"endif
-	"if filereadable(substitute(expand("%:p"), ".md$", ".bliz", ""))
-		"echom "Will not overwrite file"
-		"return 1
-	"endif
-	":cd blog
-	"execute "!md2gemini -w -l at-end " . expand("%")
-	"let g:blizpath = substitute(expand("%:p"), ".md$", ".bliz", "")
-	"execute ":e " . g:blizpath
-	":cd ..
-"endfun
+	if match(expand("%:p"), "tim\.clifford\.lol/blog/.*\.md") == -1
+		echom "Start from markdown"
+		return 1
+	endif
+	!$(dirname %)/../../scripts/build.sh --blog
+
+	let g:blizpath = substitute(
+				\ substitute(expand("%:p"), ".md$", ".bliz", ""),
+				\ "blog/", "bliz/blog/", "")
+	execute ":e " . g:blizpath
+endfun
 "fun! BlogPlainInit() abort
 	"" sanity checks
 	"if match(expand("%:p"), "tim\.clifford\.lol/blog/.*\.bliz") == -1
@@ -428,7 +426,7 @@ lua require('lspconfig').vimls.setup{capabilities = capabilities}
 lua require('lspconfig').clangd.setup{capabilities = capabilities}
 lua require('lspconfig').csharp_ls.setup{capabilities = capabilities}
 lua require('lspconfig').hls.setup{capabilities = capabilities}
-lua require('lspconfig').ghdl_ls.setup{capabilities = capabilities}
+"lua require('lspconfig').ghdl_ls.setup{capabilities = capabilities}
 lua require('lspconfig').sumneko_lua.setup{capabilities = capabilities}
 lua require('lspconfig').phpactor.setup{capabilities = capabilities}
 "lua require('lspconfig').ltex.setup{}
