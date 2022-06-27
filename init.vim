@@ -94,6 +94,19 @@ augroup formatting
 augroup END
 let g:python_recommended_style = 0 " Fuck PEP who tf made this default
 
+if system("echo $SHLVL") == 1
+	cabbrev q <c-r>=(getcmdtype()==':' && getcmdpos()==1 ? 'close' : 'q')<CR>
+	cabbrev wq <c-r>=(getcmdtype()==':' && getcmdpos()==1 ? 'w\|close' : 'q')<CR>
+	cabbrev qa <c-r>=('call DontExit()')<CR>
+	cabbrev wqa <c-r>=('call DontExit()')<CR>
+	cabbrev x <c-r>=('call DontExit()')<CR>
+	cabbrev xa <c-r>=('call DontExit()')<CR>
+endif
+
+fun! DontExit()
+	echom "You opened me with exec. You probably don't want to do that."
+endfun
+
 " Visual
 set incsearch nohlsearch
 set foldmethod=marker
@@ -186,6 +199,9 @@ fun! Make()
 		:make
 	endif
 endfun
+" }}}
+" Filetype {{{
+autocmd FileType verilog set ts=8
 " }}}
 " Network stuff {{{
 command! -nargs=1 Curl :r !curl <q-args> 2>/dev/null
@@ -671,6 +687,8 @@ nnoremap <LocalLeader>a :call vimmail#spelllang#SwitchSpellLangs()<CR>
 nnoremap <silent> <leader>m :lua require("harpoon.mark").add_file()<CR>
 nnoremap <silent> <leader>! :lua require("harpoon.term").gotoTerminal(1)<CR>
 nnoremap <silent> <leader>£ :lua require("harpoon.term").gotoTerminal(2)<CR>
+nnoremap <silent> <leader>% :lua require("harpoon.term").gotoTerminal(3)<CR>
+nnoremap <silent> <leader>& :lua require("harpoon.term").gotoTerminal(4)<CR>
 " }}}
 " }}}
 " }}}
