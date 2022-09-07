@@ -5,3 +5,23 @@ snippet eqn "Equation with a number" b
 	${0:${VISUAL}}
 \end{equation}
 endsnippet
+
+snippet subfig "Subfigure" b
+\begin{figure}[${1:htbp}]
+	\begin{subfigure}{.49\textwidth}
+		\centering
+		\input{$3}
+		\caption{${4:$3}}
+		\label{fig:${5:${3/\W+/-/g}}}
+	\end{subfigure}
+	\begin{subfigure}{.49\textwidth}
+		\centering
+		\input{$6}
+		\caption{${7:$6}}
+		\label{fig:${8:${6/\W+/-/g}}}
+	\end{subfigure}
+	\centering
+	\caption{$9}%
+	\label{fig:${10:${9/\W+/-/g}}}
+\end{figure}
+endsnippet

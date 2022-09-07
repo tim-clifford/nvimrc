@@ -1,9 +1,6 @@
 " Plugins {{{
 call plug#begin('~/.config/nvim/plugged')
 
-" let Vundle manage Vundle, required
-Plug 'VundleVim/Vundle.vim'
-
 " General stuff
 Plug 'dracula/vim', { 'name': 'dracula' }
 Plug 'skywind3000/asyncrun.vim'
@@ -11,6 +8,7 @@ Plug 'scrooloose/nerdcommenter'
 Plug 'vim-airline/vim-airline'
 Plug 'puremourning/vimspector'
 Plug 'junegunn/vim-emoji'
+Plug 'vim-scripts/vis'
 
 " Neovim stuff
 Plug 'neovim/nvim-lspconfig'
@@ -134,6 +132,7 @@ set undodir=~/.local/share/nvim/undo
 set undofile
 set hidden
 set shortmess+=F
+set nrformats+=alpha
 
 " Avoid showing message extra message when using completion
 set shortmess+=c
@@ -163,16 +162,31 @@ endfunction
 command AppendModeline call AppendModeline()
 " }}}
 " Make {{{
+"
+fun! ExecInTerm1(cmd)
+	lua require("harpoon.term").gotoTerminal(1)
+	exec "norm! A" . "" . a:cmd . "\n"
+endfun
+
 let g:asyncrun_open=5
 autocmd! BufWritePost $MYVIMRC nested source %
 execute 'autocmd! BufWritePost '.$HOME.'/.vim/git/.vimrc-nvim nested source %'
 fun! MakeAndRun()
 	if filereadable('start.sh')
+		"lua require("harpoon.term").gotoTerminal(1)
 		:AsyncStop
 		while g:asyncrun_status == 'running'
 			sleep 1
 		endwhile
 		:AsyncRun ./start.sh
+	elseif filereadable('Makefile')
+		:AsyncRun make
+		while g:asyncrun_status == 'running'
+			sleep 1
+		endwhile
+		if filereadable(expand('%:r'))
+			call system('./'.expand('%:r').'>stdout.txt 2>stderr.txt&')
+		endif
 	elseif &filetype == 'python'
 		:AsyncStop
 		execute ':AsyncRun python3 '.expand('%')
@@ -182,14 +196,14 @@ fun! MakeAndRun()
 	elseif &filetype == 'venus'
 		:AsyncStop
 		call venus#Make()
-	else
-		" Assumes makefile exists and binary filename is current filename
-		" minus extension
-		:AsyncRun make
+	elseif &filetype == 'tex'
+		execute ':AsyncRun pdflatex '.expand('%')
 		while g:asyncrun_status == 'running'
 			sleep 1
 		endwhile
-		call system('./'.expand('%:r').'>stdout.txt 2>stderr.txt&')
+		call venus#OpenZathura()
+	else
+		echom "I don't know how to make this"
 	endif
 endfun
 fun! Make()
@@ -327,8 +341,8 @@ endfun
 command! -nargs=+ Blog :call BlogInit(<q-args>)
 command! BlogGemini :call BlogGeminiInit()
 command! BlogPlain :call BlogPlainInit()
-command! BlogEmailTest :call BlogEmailTest()
-command! BlogPublish :call BlogPublish()
+"command! BlogEmailTest :call BlogEmailTest()
+"command! BlogPublish :call BlogPublish()
 command! Web :call WebInit()
 command! WebPublish :call WebPublishAndCommit()
 " }}}
@@ -522,6 +536,7 @@ nnoremap <leader>o :call   AlignWhitespaceFile('  ',' ','\t')<CR>
 " Let the strategy be more aggressive for visual selection
 vnoremap <leader>o :call AlignWhitespaceVisual('  ',' ','  \|\t')<CR>
 noremap <leader>i :Indent<CR>
+"noremap <leader>u :%s/’/'/ge|%s/“/"/ge|%s/”/"/ge|%s/…/.../ge<CR>
 " }}}
 " Splits {{{
 noremap <leader>s  <C-W>
@@ -588,13 +603,14 @@ endfun
 " }}}
 " LSP {{{
 " The original g commands are whack, seriously
-nnoremap gd :lua vim.lsp.buf.definition()<CR>
-nnoremap gi :lua vim.lsp.buf.implementation()<CR>
-nnoremap gs :lua vim.lsp.buf.signature_help()<CR>
-nnoremap gr :lua vim.lsp.buf.rename()<CR>
+nnoremap gd :lua  vim.lsp.buf.definition()<CR>
+nnoremap gi :lua  vim.lsp.buf.implementation()<CR>
+nnoremap gs :lua  vim.lsp.buf.signature_help()<CR>
+nnoremap gr :lua  vim.lsp.buf.rename()<CR>
 nnoremap gl :call LSP_open_loclist()<CR>
-nnoremap gn :lua vim.lsp.diagnostic.goto_next()<CR>
-nnoremap gj :lua vim.lsp.buf.references()<CR>
+nnoremap gn :lua  vim.lsp.diagnostic.goto_next()<CR>
+nnoremap gj :lua  vim.lsp.buf.references()<CR>
+nnoremap gt :lua  vim.lsp.buf.type_definition()<CR>
 
 fun! LSP_open_loclist()
 	lua vim.lsp.diagnostic.set_loclist()
@@ -608,7 +624,7 @@ set completefunc=emoji#complete
 " Replace emoji with utf-8
 nnoremap <leader>e :%s/:\([^ :]\+\):/\=emoji#for(submatch(1), submatch(0))/g<CR>
 " Start emoji completion automatically
-inoremap : :<C-X><C-U>
+"inoremap : :<C-X><C-U>
 " }}}
 " Ultisnips {{{
 let g:UltiSnipsExpandTrigger="<c-e>"
