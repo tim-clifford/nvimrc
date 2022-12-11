@@ -126,7 +126,9 @@ endfun
 fun! FormatEmailWrite()
 	" Just accept it, my regex skills are glorious
 	set textwidth=78
-	let indent_specifier       = '%(\> *)*'
+	" disallow formatting indented text
+	"let indent_specifier       = '%(\> *)*'
+	let indent_specifier       = ''
 	let date_specifier         = '\n^'.indent_specifier.'On .*, .* wrote:\s*\n'
 	let header_start_specifier = '^'.indent_specifier.'\s*[-_]+.*\n'
 	" Don't want to join intentionally split things, for now I will assume

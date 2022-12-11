@@ -93,13 +93,17 @@ augroup END
 let g:python_recommended_style = 0 " Fuck PEP who tf made this default
 
 if system("echo $SHLVL") == 1
+	call DontLetMeExit()
+endif
+
+fun! DontLetMeExit()
 	cabbrev q <c-r>=(getcmdtype()==':' && getcmdpos()==1 ? 'close' : 'q')<CR>
 	cabbrev wq <c-r>=(getcmdtype()==':' && getcmdpos()==1 ? 'w\|close' : 'q')<CR>
 	cabbrev qa <c-r>=('call DontExit()')<CR>
 	cabbrev wqa <c-r>=('call DontExit()')<CR>
 	cabbrev x <c-r>=('call DontExit()')<CR>
 	cabbrev xa <c-r>=('call DontExit()')<CR>
-endif
+endfun
 
 fun! DontExit()
 	echom "You opened me with exec. You probably don't want to do that."
@@ -366,7 +370,7 @@ let g:vimtex_view_automatic = 0
 " }}}
 " Venus {{{
 let g:pandoc_defaults_file   = '~/.config/pandoc/pandoc.yaml'
-let g:pandoc_header_dir      = '~/.config/pandoc/headers'
+let g:pandoc_headers         = '~/.config/pandoc/headers'
 let g:pandoc_highlight_file  = '~/.config/pandoc/dracula.theme'
 let g:pandoc_options         = '--citeproc'
 let g:venus_pandoc_callback  = ['venus#OpenZathura']
@@ -452,6 +456,7 @@ EOF
 lua require('lspconfig').pyright.setup{capabilities = capabilities}
 lua require('lspconfig').bashls.setup{capabilities = capabilities}
 lua require('lspconfig').tsserver.setup{capabilities = capabilities}
+lua require('lspconfig').rome.setup{capabilities = capabilities, cmd={ "rome", "lsp-proxy" }}
 lua require('lspconfig').vimls.setup{capabilities = capabilities}
 lua require('lspconfig').clangd.setup{capabilities = capabilities}
 lua require('lspconfig').csharp_ls.setup{capabilities = capabilities}
