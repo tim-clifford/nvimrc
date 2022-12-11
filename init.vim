@@ -460,6 +460,7 @@ lua require('lspconfig').hls.setup{capabilities = capabilities}
 lua require('lspconfig').sumneko_lua.setup{capabilities = capabilities}
 lua require('lspconfig').phpactor.setup{capabilities = capabilities}
 "lua require('lspconfig').ltex.setup{}
+"lua require('lspconfig').fortls.setup{capabilities = capabilities}
 " }}}
 " Telescope {{{
 lua require('telescope').load_extension('octo')
