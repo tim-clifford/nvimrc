@@ -41,7 +41,7 @@ Plug 'honza/vim-snippets'
 
 " Functionality
 Plug 'lervag/vimtex'
-Plug 'tim-clifford/vim-venus'
+Plug 'https://git.sr.ht/~tim-clifford/vim-venus'
 Plug 'tim-clifford/vim-qalc'
 Plug 'tim-clifford/vim-dirdiff'
 Plug 'dhruvasagar/vim-table-mode'
@@ -222,7 +222,7 @@ endfun
 autocmd FileType verilog set ts=8
 " }}}
 " Network stuff {{{
-command! -nargs=1 Curl :r !curl <q-args> 2>/dev/null
+command! -nargs=1 Curl :r !curl -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36" -sS <q-args>
 command! -nargs=1 Gurl :r !gmni gemini://<q-args> -j once
 " }}}
 " Project Specific {{{
@@ -395,61 +395,61 @@ let g:codi#interpreters = {
 " Completion {{{
 set completeopt=menu,menuone,noselect
 
-lua <<EOF
-  -- Setup nvim-cmp.
-  local cmp = require'cmp'
+"lua <<EOF
+  "-- Setup nvim-cmp.
+  "local cmp = require'cmp'
 
-  cmp.setup({
-    snippet = {
-      -- REQUIRED - you must specify a snippet engine
-      expand = function(args)
-        -- vim.fn["vsnip#anonymous"](args.body) -- For `vsnip` users.
-        -- require('luasnip').lsp_expand(args.body) -- For `luasnip` users.
-        -- require('snippy').expand_snippet(args.body) -- For `snippy` users.
-        vim.fn["UltiSnips#Anon"](args.body) -- For `ultisnips` users.
-      end,
-    },
-    mapping = {
-      ['<C-b>'] = cmp.mapping(cmp.mapping.scroll_docs(-4), { 'i', 'c' }),
-      ['<C-f>'] = cmp.mapping(cmp.mapping.scroll_docs(4), { 'i', 'c' }),
-      ['<C-Space>'] = cmp.mapping(cmp.mapping.complete(), { 'i', 'c' }),
-      ['<C-y>'] = cmp.config.disable, -- Specify `cmp.config.disable` if you want to remove the default `<C-y>` mapping.
-      ['<C-n>'] = cmp.mapping({
-        i = cmp.mapping.abort(),
-        c = cmp.mapping.close(),
-      }),
-      ['<C-e>'] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
-    },
-    sources = cmp.config.sources({
-      { name = 'nvim_lsp' },
-      -- { name = 'vsnip' }, -- For vsnip users.
-      -- { name = 'luasnip' }, -- For luasnip users.
-      { name = 'ultisnips' }, -- For ultisnips users.
-      -- { name = 'snippy' }, -- For snippy users.
-    }, {
-      { name = 'buffer' },
-    })
-  })
+  "cmp.setup({
+    "snippet = {
+      "-- REQUIRED - you must specify a snippet engine
+      "expand = function(args)
+        "-- vim.fn["vsnip#anonymous"](args.body) -- For `vsnip` users.
+        "-- require('luasnip').lsp_expand(args.body) -- For `luasnip` users.
+        "-- require('snippy').expand_snippet(args.body) -- For `snippy` users.
+        "vim.fn["UltiSnips#Anon"](args.body) -- For `ultisnips` users.
+      "end,
+    "},
+    "mapping = {
+      "['<C-b>'] = cmp.mapping(cmp.mapping.scroll_docs(-4), { 'i', 'c' }),
+      "['<C-f>'] = cmp.mapping(cmp.mapping.scroll_docs(4), { 'i', 'c' }),
+      "['<C-Space>'] = cmp.mapping(cmp.mapping.complete(), { 'i', 'c' }),
+      "['<C-y>'] = cmp.config.disable, -- Specify `cmp.config.disable` if you want to remove the default `<C-y>` mapping.
+      "['<C-n>'] = cmp.mapping({
+        "i = cmp.mapping.abort(),
+        "c = cmp.mapping.close(),
+      "}),
+      "['<C-e>'] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
+    "},
+    "sources = cmp.config.sources({
+      "{ name = 'nvim_lsp' },
+      "-- { name = 'vsnip' }, -- For vsnip users.
+      "-- { name = 'luasnip' }, -- For luasnip users.
+      "{ name = 'ultisnips' }, -- For ultisnips users.
+      "-- { name = 'snippy' }, -- For snippy users.
+    "}, {
+      "{ name = 'buffer' },
+    "})
+  "})
 
-  -- Use buffer source for `/` (if you enabled `native_menu`, this won't work anymore).
-  cmp.setup.cmdline('/', {
-    sources = {
-      { name = 'buffer' }
-    }
-  })
+  "-- Use buffer source for `/` (if you enabled `native_menu`, this won't work anymore).
+  "cmp.setup.cmdline('/', {
+    "sources = {
+      "{ name = 'buffer' }
+    "}
+  "})
 
-  -- Use cmdline & path source for ':' (if you enabled `native_menu`, this won't work anymore).
-  cmp.setup.cmdline(':', {
-    sources = cmp.config.sources({
-      { name = 'path' }
-    }, {
-      { name = 'cmdline' }
-    })
-  })
+  "-- Use cmdline & path source for ':' (if you enabled `native_menu`, this won't work anymore).
+  "cmp.setup.cmdline(':', {
+    "sources = cmp.config.sources({
+      "{ name = 'path' }
+    "}, {
+      "{ name = 'cmdline' }
+    "})
+  "})
 
-  -- Setup lspconfig.
-  local capabilities = require('cmp_nvim_lsp').update_capabilities(vim.lsp.protocol.make_client_capabilities())
-EOF
+  "-- Setup lspconfig.
+  "local capabilities = require('cmp_nvim_lsp').update_capabilities(vim.lsp.protocol.make_client_capabilities())
+"EOF
 
 " }}}
 " Lspconfig {{{
