@@ -1,4 +1,4 @@
-priority -50
+priority 50
 
 snippet eqn "Equation with a number" b
 \begin{equation}
@@ -24,4 +24,41 @@ snippet subfig "Subfigure" b
 	\caption{$9}%
 	\label{fig:${10:${9/\W+/-/g}}}
 \end{figure}
+endsnippet
+
+# override annoying tex autosnippets
+snippet __ "subscript" Aw
+__
+endsnippet
+
+snippet <= "leq" w
+\le
+endsnippet
+
+snippet >= "geq" w
+\ge
+endsnippet
+
+snippet lll "l" w
+\ell
+endsnippet
+
+snippet xx "cross" w
+\times
+endsnippet
+
+snippet <! "normal" Aw
+<!
+endsnippet
+
+snippet "(\d|\w)+invs" "inverse" wr
+`!p snip.rv = match.group(1)`^{-1}
+endsnippet
+
+snippet !> "mapsto" w
+\mapsto
+endsnippet
+
+snippet docls "Document Class" b
+\documentclass{$1}$0
 endsnippet

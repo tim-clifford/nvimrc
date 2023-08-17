@@ -12,7 +12,7 @@ Plug 'vim-scripts/vis'
 
 " Neovim stuff
 Plug 'neovim/nvim-lspconfig'
-Plug 'tjdevries/nlua.nvim'
+"Plug 'tjdevries/nlua.nvim'
 "Plug 'nvim-lua/lsp_extensions.nvim' " Some problems with get_count
 Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}
 Plug 'nvim-lua/popup.nvim'
@@ -367,14 +367,42 @@ augroup vimtex
 	autocmd InsertLeave *.tex :w
 augroup END
 let g:vimtex_view_automatic = 0
+
+" fucking vimtex
+xnoremap  <nowait> ic           <nop>
+xnoremap  <nowait> ie           <nop>
+xnoremap  <nowait> im           <nop>
+xnoremap  <nowait> iP           <nop>
+xnoremap  <nowait> i$           <nop>
+xnoremap  <nowait> id           <nop>
+onoremap  <nowait> ic           <nop>
+onoremap  <nowait> ie           <nop>
+onoremap  <nowait> im           <nop>
+onoremap  <nowait> iP           <nop>
+onoremap  <nowait> i$           <nop>
+onoremap  <nowait> id           <nop>
+
+xnoremap  hc           <Plug>(vimtex-ic)
+xnoremap  he           <Plug>(vimtex-ie)
+xnoremap  hm           <Plug>(vimtex-im)
+xnoremap  hP           <Plug>(vimtex-iP)
+xnoremap  h$           <Plug>(vimtex-i$)
+xnoremap  hd           <Plug>(vimtex-id)
+onoremap  hc           <Plug>(vimtex-ic)
+onoremap  he           <Plug>(vimtex-ie)
+onoremap  hm           <Plug>(vimtex-im)
+onoremap  hP           <Plug>(vimtex-iP)
+onoremap  h$           <Plug>(vimtex-i$)
+onoremap  hd           <Plug>(vimtex-id)
 " }}}
 " Venus {{{
 let g:pandoc_defaults_file   = '~/.config/pandoc/pandoc.yaml'
-let g:pandoc_headers         = '~/.config/pandoc/headers'
+let g:pandoc_header_dir      = '~/.config/pandoc/headers'
 let g:pandoc_highlight_file  = '~/.config/pandoc/dracula.theme'
 let g:pandoc_options         = '--citeproc'
 let g:venus_pandoc_callback  = ['venus#OpenZathura']
 let g:venus_ignorelist       = ['README.md', 'https-tim.clifford.lol/blog']
+let g:markdown_fenced_languages = ['tex', 'python', 'sh', 'haskell', 'c', 'html', 'json', 'javascript']
 " }}}
 " Airline {{{
 let g:airline_extensions = ['quickfix', 'netrw', 'term', 'csv', 'branch', 'fugitiveline', 'nvimlsp', 'po', 'wordcount', 'searchcount']
@@ -466,6 +494,7 @@ lua require('lspconfig').sumneko_lua.setup{capabilities = capabilities}
 lua require('lspconfig').phpactor.setup{capabilities = capabilities}
 "lua require('lspconfig').ltex.setup{}
 "lua require('lspconfig').fortls.setup{capabilities = capabilities}
+"lua require('lspconfig').lua_ls.setup{capabilities = capabilities}
 " }}}
 " Telescope {{{
 lua require('telescope').load_extension('octo')
@@ -515,7 +544,7 @@ noremap <silent> <leader>J :prev<CR>
 
 noremap n h
 noremap e j
-noremap i k
+noremap <nowait> i k
 noremap o l
 noremap k o
 noremap l e
